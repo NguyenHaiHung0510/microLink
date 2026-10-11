@@ -45,7 +45,7 @@ $('prob').oninput = () => {$('probLabel').textContent = $('prob').value+'%';};
 const apply = () => act('/config', config(), 'Đã cập nhật tốc độ và hồ sơ mạng. Các ý định đã phát giữ kịch bản của chúng.');
 $('prob').onchange = apply;
 $('offline').onclick = () => {$('prob').value=100; $('prob').oninput(); act('/config',config(),'Đã ngắt cả hai đường truyền. Ý định mới tiếp tục xếp hàng; request đã tới server có thể đã ghi.');};
-$('restore').onclick = () => {$('prob').value=0; $('prob').oninput(); act('/config',config(),'Đã khôi phục mạng. Các lần retry dùng lại ID của ý định đang xử lý.');};
+$('restore').onclick = () => {$('prob').value=0; $('force').value='mixed'; $('prob').oninput(); act('/config',config(),'Đã bỏ sự cố hiện tại và trở về 0%. Các lần retry dùng lại ID của ý định đang xử lý.');};
 for (const id of ['pace','force','duration','delay','bandwidth',...Object.keys(defaults).map(k=>'weight-'+k)]) $(id).onchange = apply;
 function text(tag, value, className) {
   const e = document.createElement(tag); e.textContent = value;

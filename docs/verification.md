@@ -9,6 +9,7 @@ This is lab evidence, not production readiness or independent acceptance.
 | Paired pilot benchmark | 4 pairs | 4 pairs completed | 48 intents/lane,3 baseline extra effects,0 reliable extra effects |
 | Owned lab stop/start | 1 cycle | 1 | Existing PostgreSQL service retained |
 | Agent cadence / pause / live speed | 2 | 2 | PASS100% after scheduler change |
+| Restore active and queued faults | 1 | 1 | PASS100%; cleared a30-second fault and settled in2.51s |
 | UI Compare / Explain smoke | 2 modes | 2 | Maintainer smoke PASS100%; both fit1366×768 |
 | Real Codex / real microSched | 0 | 0 | NOT_RUN |
 | Independent review / device matrix | 0 | 0 | NOT_RUN |
@@ -39,7 +40,9 @@ Each lane consumes its own queue; retry does not speed up or slow down the Agent
 After the change,5/5 policy checks and6/6 real integration cases passed again.
 Two Agent checks passed:1-second cadence measured1.007/1.020 seconds; pausing held
 the issued count at1, and changing the interval to0.2s produced0.230/0.243s gaps.
-Receipts: `.runtime/checks/1791727770` and `.runtime/agent-checks/1791727998`.
+Final regression receipts: `.runtime/checks/1791728996` and
+`.runtime/agent-checks/1791729016`. Restore receipt:
+`.runtime/ui/restore-check.json`. All checks passed after the restore fix.
 
 The desktop UI smoke used1366×768. Both modes displayed all three panels in the
 viewport, including their footers, with no horizontal overflow. A live3-intent

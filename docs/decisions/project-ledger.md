@@ -83,6 +83,7 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 Five policy checks, six MCP/HTTPS/PostgreSQL cases and two Agent cadence/pause
 checks passed. Both UI modes fit1366×768 in a desktop smoke. A three-intent
 response-loss run produced6 rows without the full contract and3 rows with it.
+Restoring the network clears active and queued faults; its focused live check passed.
 
 The earlier four-pair pilot completed48 intents per lane:3 extra baseline effects,
 0 reliable extra effects. It predates the independent Agent scheduler.
@@ -90,3 +91,6 @@ The earlier four-pair pilot completed48 intents per lane:3 extra baseline effect
 These checks do not prove production readiness. Crash durability, multi-client
 ordering, broad device acceptance and real Codex/microSched integration remain open.
 See [verification](../verification.md) and [the contract](../lab-contract.md).
+
+The public repository is [NguyenHaiHung0510/microLink](https://github.com/NguyenHaiHung0510/microLink).
+Local runtime, private history, certificates and course artifacts are excluded.

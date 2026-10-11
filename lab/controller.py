@@ -179,7 +179,7 @@ async def configure(config: Config):
     state["config"] = config.model_dump()
     # Explicit demo convention: slider 100 means full disconnect, not only slow requests.
     offline = config.probability == 100
-    if offline != faults.offline:
+    if offline != faults.offline or (config.probability == 0 and config.force in ("mixed", "normal")):
         await faults.set_offline(offline)
     if state["run_id"]:
         append(RUNTIME / "config-events.jsonl", {"run_id": str(state["run_id"]), "config": state["config"]})
@@ -263,7 +263,9 @@ async def lane_run(lane, run_id, config, released, started):
                     result = await client.call_tool("warmup")
                     info["warmup"] = result.structured_content
                 episode = plan(seq)
-                await faults.apply(lane, **episode)
+                healthy_now = state["config"]["probability"] == 0 and state["config"]["force"] in ("mixed", "normal")
+                # A live restore overrides active/queued faults, not write results.
+                await faults.apply(lane, **{**episode, "scenario": "normal" if healthy_now else episode["scenario"]})
                 intent_id = state["agent"]["intents"][seq - 1]["intent_id"]
                 operation = {"run_id": str(run_id), "intent_id": intent_id, "seq": seq,
                              "title": "Task A" if config.parent_case and seq == 1 else f"Task {seq}",

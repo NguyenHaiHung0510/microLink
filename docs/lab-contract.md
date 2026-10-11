@@ -36,6 +36,8 @@ Ngày: 11/10/2026. Thuật toán ưu tiên nhỏ và dễ học; transport và h
 - p<100 là adverse exposure, conditional weights được normalize; p100 được demo quy ước là full disconnect.
 - TLS warm-up trước directional application fault; write/retry trong episode đều đi qua proxy.
 - Timed fault tự hết theo schedule, không theo lane nào thắng. Các thay đổi live được ghi và không gọi là frozen bench.
+- Nút Khôi phục bỏ cả toxic hiện tại và kịch bản ép, đưa đường truyền về0%.
+  Các ý định đã xếp hàng dùng đường bình thường đến khi cấu hình mạng đổi tiếp.
 - Toxiproxy toxicity theo connection, không trực tiếp operation. Scenario được runner gán theo intent/seed.
 
 ## Phạm vi

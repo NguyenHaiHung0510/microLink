@@ -28,11 +28,16 @@ powershell -File scripts/setup.ps1
 powershell -File scripts/start.ps1
 ```
 
-Open [the demo](http://127.0.0.1:19030). It shows one scripted Agent and two
-microLink lanes: **miAssura off** and **miAssura on**. Adjust the Agent rate and
+Open [the demo](http://127.0.0.1:19030). It shows two independent scripted Agents,
+each with its own MCP bridge: **miAssura off** and **miAssura on**. Adjust their rate and
 network faults live. Use **Compare** for the streams or **Explain** for the trace.
 Previous/next inspect recorded events; they do not undo writes. The full trace and
-configured fault distribution are shown below the main view.
+configured fault distribution are shown below the main view. Shared controls
+broadcast actions; they do not synchronize progress or combine responses.
+
+Faults are drawn independently under one profile by default. Enable **paired
+fault scenarios** for repeatable comparisons of the same numbered workload.
+Even in paired mode, the lanes execute independently.
 
 The comparison includes server support: the off lane creates a new record on each
 POST; the on lane creates or replays the same ID. The proxy injects faults.

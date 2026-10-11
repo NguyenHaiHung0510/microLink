@@ -18,7 +18,7 @@ async def main():
     async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{CONTROL_PORT}", trust_env=False) as client:
         for probability, seed in [(0, 42), (30, 42), (30, 71), (50, 42)]:
             config = {"probability": probability, "seed": seed, "count": 12, "attempts": 5,
-                      "force": "mixed", "duration": 4, "pace": 0}
+                      "force": "mixed", "duration": 4, "pace": 0, "paired_faults": True}
             response = await client.post("/start", json=config)
             response.raise_for_status()
             began = time.monotonic()

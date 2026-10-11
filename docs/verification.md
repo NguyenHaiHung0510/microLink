@@ -1,4 +1,4 @@
-# Verification — 2026-10-11
+# Verification — updated 2026-10-12
 
 This is lab evidence, not production readiness or independent acceptance.
 
@@ -8,9 +8,9 @@ This is lab evidence, not production readiness or independent acceptance.
 | Real MCP/HTTPS/PostgreSQL cases | 6 | 6 | PASS100% |
 | Paired pilot benchmark | 4 pairs | 4 pairs completed | 48 intents/lane,3 baseline extra effects,0 reliable extra effects |
 | Owned lab stop/start | 1 cycle | 1 | Existing PostgreSQL service retained |
-| Agent cadence / pause / live speed | 2 | 2 | PASS100% after scheduler change |
+| Independent Agents / cadence / pause / live speed | 3 | 3 | PASS100%; includes isolated progress and scoped receipts |
 | Restore active and queued faults | 1 | 1 | PASS100%; cleared a30-second fault and settled in2.51s |
-| UI Compare / Explain smoke | 2 modes | 2 | Maintainer smoke PASS100%; both fit1366×768 |
+| UI Compare / Explain smoke | 2 modes | 2 | Maintainer smoke; Compare100 fits1280×720 and1366×768; Explain shows full logs |
 | Real Codex / real microSched | 0 | 0 | NOT_RUN |
 | Independent review / device matrix | 0 | 0 | NOT_RUN |
 
@@ -97,3 +97,49 @@ windows stack panels. The configured-percentage panel displayed70/10/5/6/6/2/1
 for normal/latency/bandwidth/request/response/reset/partial at30% mixed exposure.
 Assigned counts remained a separate column. Final Owner acceptance, independent
 review and broader device/accessibility acceptance are not claimed.
+
+## Independent Agent/MCP lanes — 2026-10-12
+
+Each lane now has its own emitter, intent IDs, queue, MCP session and result
+collection. Common controls broadcast actions. Default fault draws are independent
+under one profile; optional paired scenarios preserve benchmark comparability.
+Earlier sections describe prior revisions, including the shared Agent.
+
+Maintainer checks passed:5/5 policy,6/6 real integration and3/3 Agent cases (100%
+in each batch). Receipts: `.runtime/checks/1791737261` and
+`.runtime/agent-checks/1791737282`. In the isolation case, the off lane completed
+three calls while the on lane had no confirmed result yet. Both later confirmed
+their own IDs. Cadence and broadcast pause/live speed checks passed for both Agents.
+
+Run8308772e-832e-444b-81bf-1410e15318a7 used100 intents per Agent,30% independent
+mixed exposure, seed42,4-second faults and0.1-second cadence. Both confirmed100.
+Off:110 rows/10 extras; on:100 rows/0 extras in1..100 order. Each used144 attempts;
+equal totals did not imply equal fault selections or pooled replies. All1,433
+events matched the six raw trace sources. Canonical receipt:
+`.runtime/independent-lanes/mixed100-report.json` with its state and samples.
+
+A second run checked the final100-node layout with shorter0.2-second faults and
+500ms latency. It produced110/100 rows and112/117 attempts, with1,315 complete
+trace events. Receipt: `.runtime/independent-lanes/layout100-report.json`.
+The final Compare panels end at717px in1280×720 and761.1px in1366×768, with no
+horizontal overflow or node cap. These are two distinct synthetic profiles;
+do not combine them into one benchmark.
+
+Explain's one-intent response-loss case showed2 off-lane rows versus1 on-lane row;
+the latter returned the prior record. Both clients' full logs retained UNKNOWN
+attempts and transport error reasons. Compact MCP logs now identify replay too.
+History first/previous/next moved each lane's own event cursor. Current conditions
+appeared inside the shared black box; equal conditions were grouped once.
+JavaScript syntax, Ruff and diff-whitespace checks passed. Demo settings were
+restored to1s/intent,30% exposure and4-second episodes after the checks.
+
+The first final-layout check found a1px panel overflow at1280×720. Reducing the
+row gap fixed it; the same completed dataset then passed without new writes.
+An attempted0.05s UI interval was correctly rejected by the0.1s input step;
+the layout run used0.1s. Synthetic failed attempts remain in local receipts.
+
+The source manifest and first batch receipt are in
+`.runtime/independent-lanes/ui-smoke-source.json` and `batch-receipt.json`.
+Later client-log/layout-only changes were rechecked in the browser; they do not
+change the recovery policy or invalidate the backend batch. This is maintainer
+evidence. Independent review, production acceptance and a broad benchmark remain open.

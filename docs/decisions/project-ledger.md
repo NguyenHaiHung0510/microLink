@@ -1,6 +1,6 @@
 # microLink decisions
 
-Updated 2026-10-11. This record keeps accepted technical choices and open work.
+Updated 2026-10-12. This record keeps accepted technical choices and open work.
 Decision IDs remain stable. A selected design is not proof of runtime correctness.
 
 ## Scope
@@ -71,6 +71,9 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | D56 | Show full evidence/trace openly in vertical source columns; no folding, last-N cap or narrow internal scrollbar. |
 | D57 | Owner explicitly authorized the B-based live redesign on 2026-10-11. This supersedes the D51 implementation hold. Add a live panel of configured fault-type percentages and assigned-intent counts. |
 | D58 | Previous/next inspect chronological evidence from a real run; they never undo commits or claim to step encrypted packets. Pause/resume control future sends; in-flight work may still finish. |
+| D59 | Owner explicitly requested and authorized two independent Agent/MCP streams. Each owns IDs, queues and results. Common controls broadcast actions without synchronizing progress. This replaces the shared Agent topology in D42. |
+| D60 | Default live faults are drawn independently under the same profile. Retain optional paired per-task scenarios for controlled benchmark comparison; paired mode never pools responses or enforces lockstep. |
+| D61 | Keep one network black box. Show actual active conditions inside, grouped only when equal. Remove repeated no-toxic text and the TCP/TLS subtitle. History controls advance each lane independently. |
 
 ## Open work
 
@@ -81,7 +84,7 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | R03 | Stable-ID/replay candidate implemented. Compare alternatives and explain limits. |
 | R04,R22,R27,R28 | Identity, evidence, retry and dependency contracts are implemented and tested. Server uniqueness remains a precondition. |
 | R05,R17 | Synthetic task and parent/checklist cases implemented; production business integration deferred. |
-| R06,R20,R23,R25,R33 | Both three-panel modes implemented and smoke-checked. Final presentation acceptance and broader benchmark remain open. |
+| R06,R20,R23,R25,R33 | Both views now show two independent client/server pairs. Maintainer smoke passed; final presentation acceptance and broader benchmark remain open. |
 | R07 | Process crash/restart durability deferred. |
 | R09,R11,R13 | Pinned protocol observed on the wire; real Codex compatibility not verified. |
 | R16 | Earlier learning prototypes retained separately from the live lab. |
@@ -97,13 +100,20 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | R39 | Controlled Explain presets are live. Request suppression, lost response and disconnect have runtime evidence; the late-response preset is implemented but not separately GUI-verified. Duplication is an observed outcome, not an injected server error. |
 | R41 | Live UI now displays real three-line event windows and full Explain logs, with historical steps. A 100-intent mixed run confirmed both streams: 110 baseline rows / 100 reliable rows, 10 / 0 extra effects. |
 | R40 | Owner approved live implementation under D57. B layout is live with endpoint logs, common network box and open full trace. Maintainer runtime smoke passed; final Owner demo acceptance remains pending. |
+| R42 | Audit found separate MCP clients/processes and scoped replies already existed; shared emission and paired fault plans could explain identical counters/logs. D59–D61 implemented. New isolation, broadcast pause/rate changes and both UI views passed maintainer checks. Owner acceptance remains pending. |
 
 ## Current evidence
 
-Five policy checks, six MCP/HTTPS/PostgreSQL cases and two Agent cadence/pause
-checks passed. Both UI modes fit1366×768 in a desktop smoke. A three-intent
-response-loss run produced6 rows without the full contract and3 rows with it.
-Restoring the network clears active and queued faults; its focused live check passed.
+Five policy checks, six MCP/HTTPS/PostgreSQL cases and three Agent checks passed
+after the independent-lane change. One lane completed three writes while the
+other still waited on its first response; result IDs remained scoped to their Agent.
+The 100-task Compare view fits1280×720 and1366×768. Explain displays full client
+and server logs, including replay evidence. Restoring the network clears faults.
+
+One independent 100-task run produced110 baseline rows/10 extras and100 reliable
+rows/0 extras, with100 confirmations in each lane. A shorter fault profile used
+for the final layout check produced112 baseline attempts and117 reliable attempts.
+The earlier shared-emitter receipts remain historical evidence, not this topology.
 
 The earlier four-pair pilot completed48 intents per lane:3 extra baseline effects,
 0 reliable extra effects. It predates the independent Agent scheduler.

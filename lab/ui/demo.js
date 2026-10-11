@@ -1,7 +1,7 @@
 // Live views read observer data; no observer result is supplied to the bridge.
 const $ = id => document.getElementById(id);
 const lanes = ['baseline', 'reliable'];
-const sources = ['agent', ...lanes, ...lanes.map(lane => 'server-' + lane)];
+const sources = [...lanes.map(lane => 'agent-' + lane), ...lanes, ...lanes.map(lane => 'server-' + lane)];
 const defaults = {latency:10, bandwidth:5, request:6, response:6, reset:2, partial:1};
 const names = {normal:'Bình thường', latency:'Phản hồi chậm', bandwidth:'Băng thông thấp', request:'Cản chiều đi', response:'Cản chiều về', reset:'Ngắt đột ngột', partial:'Ngắt khi đang truyền', outage:'Đứt mạng'};
 const statuses = {idle:'Sẵn sàng', running:'Đang chạy', paused:'Tạm dừng', stopping:'Đang dừng', finished:'Đã kết thúc'};
@@ -19,7 +19,8 @@ for (const key of Object.keys(defaults)) {
   label.append(input); $('weights').append(label);
 }
 let snapshot = null, hydrated = false, busy = false, enabled = true, timer = null;
-let runId = null, cursor = null, events = [], traceFingerprint = '', moreTrace = false;
+let runId = null, events = [], traceFingerprint = '', moreTrace = false;
+let cursors = {baseline:null, reliable:null}, laneEvents = {baseline:[], reliable:[]};
 let traceStore = Object.fromEntries(sources.map(source => [source, []]));
 let offsets = Object.fromEntries(sources.map(source => [source, 0]));
 const signatures = new Map(), opened = Date.now();
@@ -31,6 +32,7 @@ function config() {
   }
   return {probability:+$('prob').value, count:+$('count').value, attempts:+$('attempts').value,
     persistent:$('persistent').checked, force:$('force').value, parent_case:$('parent').checked,
+    paired_faults:$('paired').checked,
     seed:+$('seed').value, duration:+$('duration').value, delay_ms:+$('delay').value,
     bandwidth_kb:+$('bandwidth').value, pace:+$('pace').value,
     weights:Object.fromEntries(Object.keys(defaults).map(key => [key, +$('weight-' + key).value]))};
@@ -47,7 +49,7 @@ async function post(path, body) {
 async function act(path, body, message) {
   if (busy) return;
   busy = true;
-  try { await post(path, body); $('message').textContent = message; $('message').classList.remove('error'); if (path !== '/config') cursor = null; }
+  try { await post(path, body); $('message').textContent = message; $('message').classList.remove('error'); if (path !== '/config') cursors = {baseline:null, reliable:null}; }
   catch (error) { $('message').textContent = error.message; $('message').classList.add('error'); }
   finally { busy = false; }
 }
@@ -89,14 +91,15 @@ $('fullscreen').onclick = async () => {
 };
 document.addEventListener('fullscreenchange', () => { $('fullscreen').textContent = document.fullscreenElement ? 'Thoát toàn màn hình' : 'Toàn màn hình'; });
 
-function chooseStep(index) {
-  if (!events.length) return;
-  cursor = Math.max(0, Math.min(events.length - 1, index)); paint();
+function chooseStep(lane, index) {
+  if (!laneEvents[lane].length) return;
+  cursors[lane] = Math.max(0, Math.min(laneEvents[lane].length - 1, index));
 }
-$('firstStep').onclick = () => chooseStep(0);
-$('prevStep').onclick = () => chooseStep((cursor ?? events.length - 1) - 1);
-$('nextStep').onclick = () => chooseStep((cursor ?? events.length - 1) + 1);
-$('liveView').onclick = () => { cursor = null; paint(); };
+for (const [id, change] of [['firstStep', () => 0], ['prevStep', (index) => index - 1], ['nextStep', (index) => index + 1]]) $(id).onclick = () => {
+  for (const lane of lanes) chooseStep(lane, change(cursors[lane] ?? laneEvents[lane].length - 1));
+  paint();
+};
+$('liveView').onclick = () => { cursors = {baseline:null, reliable:null}; paint(); };
 
 function clock(value) { return Number.isFinite(value) ? new Date(value * 1000).toLocaleTimeString('vi-VN', {hour12:false}) : '—'; }
 function eventKind(event) {
@@ -122,11 +125,12 @@ function label(event, brief = false) {
     case 'trace_error': return 'Không đọc được một dòng trace.';
     case 'result': {
       const known = {confirmed:'Xác nhận', unknown:'Chưa biết', rejected:'Bị từ chối', not_sent:'Chưa gửi'}[event.state] || event.state;
-      return `${task} · ${known} (lần ${event.attempt})${!brief && event.reason ? ' · ' + event.reason : ''}${!brief && event.receipt?.created === false ? ' · nhận bản ghi cũ' : ''}`;
+      return `${task} · ${known} (lần ${event.attempt})${!brief && event.reason ? ' · ' + event.reason : ''}${event.receipt?.created === false ? ' · bản ghi cũ' : ''}`;
     }
     default: return `${task} · ${event.event}`;
   }
 }
+function sourceLabel(event, brief = false) { return (event.source?.startsWith('agent-') ? 'Agent: ' : 'MCP: ') + label(event, brief); }
 function markExtras(list) {
   const seen = new Set();
   return list.map(event => {
@@ -135,9 +139,10 @@ function markExtras(list) {
     return {...event, extra};
   });
 }
-function setWindow(id, list, next) {
+function setWindow(id, list, next, client = false) {
   const previous = list.at(-2), current = list.at(-1);
-  const content = [previous ? `${symbol(previous)} ${label(previous, true)}` : '—', current ? `${symbol(current)} ${label(current, true)}` : 'Chưa có sự kiện', next];
+  const describe = event => `${symbol(event)} ${client ? sourceLabel(event, true) : label(event, true)}`;
+  const content = [previous ? describe(previous) : '—', current ? describe(current) : 'Chưa có sự kiện', next];
   const signature = JSON.stringify(content);
   if (signatures.get(id) === signature) return;
   signatures.set(id, signature);
@@ -157,7 +162,7 @@ function setNodes(id, rows, target, agent = false) {
   for (const row of rows) {
     present.add(row.seq); const duplicate = !agent && counts.get(row.intent_id || row.seq) > 1;
     const tile = node('span', row.seq, 'node' + (agent ? ' emitted' : duplicate ? ' duplicate' : ''));
-    tile.title = `Task ${row.seq}: ${agent ? 'Agent đã phát' : duplicate ? counts.get(row.intent_id || row.seq) + ' bản ghi cùng ý định' : 'server đã ghi'}`;
+    tile.title = `Task ${row.seq}: ${agent ? 'Agent đã phát' : duplicate ? counts.get(row.intent_id || row.seq) + ' bản ghi cùng ý định' : 'server đã ghi'} · ID ý định: ${row.intent_id || '—'}`;
     fragment.append(tile);
   }
   for (let seq = 1; seq <= target; seq++) if (!present.has(seq)) {
@@ -180,9 +185,12 @@ function setLog(id, list) {
   const root = $(id), fragment = document.createDocumentFragment();
   for (const event of list) {
     const item = node('li', '', eventKind(event));
-    item.append(node('time', clock(event.time)), node('b', symbol(event)), node('span', label(event)));
+    item.append(node('time', clock(event.time)), node('b', symbol(event)), node('span', id.endsWith('ClientLog') ? sourceLabel(event) : label(event)));
     item.title = event.intent_id ? `Ý định: ${event.intent_id}` : '';
-    item.onclick = () => chooseStep(events.findIndex(row => row.source === event.source && row.trace_offset === event.trace_offset));
+    item.onclick = () => {
+      const lane = event.source.endsWith('baseline') ? 'baseline' : 'reliable';
+      chooseStep(lane, laneEvents[lane].findIndex(row => row.source === event.source && row.trace_offset === event.trace_offset)); paint();
+    };
     fragment.append(item);
   }
   if (!list.length) fragment.append(node('li', 'Chưa có sự kiện.'));
@@ -195,8 +203,8 @@ function bridgeNext(lane, last, info, issued, target) {
   if (last.state === 'confirmed') return last.seq < target ? (last.seq < issued ? `Dự kiến gửi Task ${last.seq + 1}` : 'Chờ Agent phát tiếp') : 'Đã xử lý hết chuỗi';
   if (last.state === 'rejected') return lane === 'reliable' ? 'Dừng chuỗi · request bị từ chối' : 'Không thử lại request bị từ chối';
   const limit = snapshot.config.persistent ? 250 : snapshot.config.attempts;
-  if (cursor === null && snapshot.status === 'paused') return 'Tạm dừng lần gửi tiếp';
-  if (cursor === null && snapshot.status === 'finished' && info.state !== 'confirmed') return 'Chuỗi đã dừng · giữ kết quả chưa biết';
+  if (cursors[lane] === null && snapshot.status === 'paused') return 'Tạm dừng lần gửi tiếp';
+  if (cursors[lane] === null && snapshot.status === 'finished' && info.state !== 'confirmed') return 'Chuỗi đã dừng · giữ kết quả chưa biết';
   if (last.attempt >= limit) return 'Hết giới hạn · chưa được đi tiếp';
   return lane === 'reliable' ? 'Thử lại cùng ID khi còn giới hạn' : 'Thử lại theo API thông thường';
 }
@@ -209,61 +217,86 @@ function profile(config, network) {
     const sum = Object.values(config.weights).reduce((a, b) => a + b, 0);
     for (const key of Object.keys(defaults)) percentages[key] = config.probability * config.weights[key] / sum;
   }
-  const signature = JSON.stringify([percentages, network?.assigned]);
+  const signature = JSON.stringify([percentages, network?.assigned_by_lane, config.paired_faults]);
   if (signatures.get('profile') === signature) return;
   signatures.set('profile', signature); $('rateRows').replaceChildren(); $('rateBar').replaceChildren();
   for (const [key, value] of Object.entries(percentages)) {
-    const row = node('tr'); row.append(node('td', names[key]), node('td', value.toLocaleString('vi-VN', {maximumFractionDigits:1}) + '%'), node('td', network?.assigned_available ? network.assigned[key] ?? 0 : '—')); $('rateRows').append(row);
+    const row = node('tr'); row.append(node('td', names[key]), node('td', value.toLocaleString('vi-VN', {maximumFractionDigits:1}) + '%'), ...lanes.map(lane => node('td', network?.assigned_available ? network.assigned_by_lane[lane][key] ?? 0 : '—'))); $('rateRows').append(row);
     if (value) { const segment = node('span', '', key); segment.style.width = value + '%'; $('rateBar').append(segment); }
   }
   $('profileLabel').textContent = config.probability === 100 ? 'Ngắt kết nối toàn phần' : config.force === 'mixed' ? `Bất lợi ${config.probability}%` : `Ép: ${names[config.force]}`;
-  $('profileNote').textContent = '“Đã gán” đếm hồ sơ của ý định đã phát, không đếm thao tác thất bại. Tỷ lệ hiện tại dùng cho ý định phát sau khi thay đổi.';
+  $('profileNote').textContent = `${config.paired_faults ? 'Cùng kịch bản lỗi theo số task để đối chứng; thời điểm chạy vẫn độc lập.' : 'Hai luồng chọn lỗi độc lập dưới cùng tỷ lệ.'} Cột Tắt/Bật đếm ý định đã gán điều kiện, không đếm lỗi thao tác.`;
+}
+function paintNetwork(network) {
+  const active = network?.active || {};
+  const description = fault => {
+    const direction = fault.direction === 'upstream' ? '→ Lệnh đi' : '← Kết quả về';
+    const detail = fault.scenario === 'latency' ? ` · ${fault.attributes.latency} ms` : fault.scenario === 'bandwidth' ? ` · ${fault.attributes.rate} KB/s` : '';
+    return `${names[fault.scenario]} · ${direction}${detail}`;
+  };
+  $('activeFaults').replaceChildren();
+  if (network?.offline) { $('networkNow').textContent = 'Đứt mạng · cả hai luồng'; return; }
+  const affected = lanes.filter(lane => active[lane]);
+  if (!affected.length) { $('networkNow').textContent = 'Không có sự cố đang áp dụng'; return; }
+  $('networkNow').textContent = 'Sự cố đang áp dụng';
+  const equal = affected.length === 2 && description(active.baseline) === description(active.reliable);
+  for (const lane of equal ? ['baseline'] : affected) {
+    const row = node('div', '', 'fault-state');
+    row.append(node('b', equal ? 'Cả hai luồng' : lane === 'baseline' ? 'Luồng 1 · Tắt' : 'Luồng 2 · Bật'), node('span', description(active[lane])));
+    $('activeFaults').append(row);
+  }
 }
 function paint() {
   if (!snapshot) return;
   const s = snapshot, active = ['running', 'paused', 'stopping'].includes(s.status);
   $('runState').textContent = statuses[s.status] || s.status;
   $('start').disabled = active || busy; $('pause').disabled = s.status !== 'running'; $('resume').disabled = s.status !== 'paused'; $('stop').disabled = !active || s.status === 'stopping';
-  for (const id of ['count', 'attempts', 'persistent', 'parent', 'seed', 'preset']) $(id).disabled = active;
-  if (cursor !== null) cursor = Math.min(cursor, Math.max(0, events.length - 1));
-  const visible = cursor === null ? events : events.slice(0, cursor + 1);
-  const bySource = Object.fromEntries(sources.map(source => [source, visible.filter(event => event.source === source)]));
-  const agent = cursor === null ? s.agent.intents : bySource.agent;
-  const target = s.agent.target || s.config.count;
-  $('issued').textContent = `${agent.length}/${target} ý định`;
-  setNodes('agentNodes', agent, target, true);
-  setWindow('agentWindow', agent.map(event => ({...event, event:'issued'})), agent.length < target ? `Dự kiến phát Task ${agent.length + 1}` : 'Đã phát hết · chờ xử lý');
-  $('agentLog').hidden = !focus; setLog('agentLog', bySource.agent);
+  for (const id of ['count', 'attempts', 'persistent', 'parent', 'seed', 'preset', 'paired']) $(id).disabled = active;
   for (const lane of lanes) {
+    const cursor = cursors[lane];
+    const timeline = laneEvents[lane];
+    const visible = cursor === null ? timeline : timeline.slice(0, cursor + 1);
+    const agentSource = 'agent-' + lane, serverSource = 'server-' + lane;
+    const agentInfo = s.agents[lane];
+    const agent = cursor === null ? agentInfo.intents : visible.filter(event => event.source === agentSource);
+    const target = agentInfo.target || s.config.count;
     const info = s.lanes[lane] || {state:'ready', results:[]};
-    let bridge = bySource[lane];
+    let bridge = visible.filter(event => event.source === lane);
     if (cursor === null && !bridge.length) bridge = s.traces[lane] || [];
-    let server = markExtras(bySource['server-' + lane]);
+    let server = markExtras(visible.filter(event => event.source === serverSource));
     const rowTruth = s.rows.filter(row => row.lane === lane);
-    const rows = cursor === null ? rowTruth : traceStore['server-' + lane].length ? server.filter(event => event.event === 'commit').map(event => event.receipt) : rowTruth.filter(row => Date.parse(row.committed_at) / 1000 <= events[cursor].time);
+    const rows = cursor === null ? rowTruth : traceStore[serverSource].length ? server.filter(event => event.event === 'commit').map(event => event.receipt) : rowTruth.filter(row => Date.parse(row.committed_at) / 1000 <= timeline[cursor]?.time);
     if (cursor === null && !server.length && rows.length) server = rows.map(row => ({...row, event:'observed_row', time:Date.parse(row.committed_at) / 1000}));
+    const confirmed = bridge.filter(event => event.event === 'result' && event.state === 'confirmed').length;
+    $(lane + 'Issued').textContent = `${agent.length}/${target} đã phát`;
+    const processed = cursor === null ? info.results.length : new Set(bridge.filter(event => event.event === 'result' && ['confirmed','rejected'].includes(event.state)).map(event => event.seq)).size;
+    $(lane + 'Queue').textContent = `${Math.max(0, agent.length - processed)} chờ xử lý`;
+    setNodes(lane + 'AgentNodes', agent, target, true);
     setNodes(lane + 'Nodes', rows, target);
     const extra = rows.length - new Set(rows.map(row => row.intent_id)).size;
     setMetrics(lane + 'Metrics', [['Đã ghi', rows.length], ['Ghi thừa', extra, extra > 0], ['Từ chối', server.filter(event => event.event === 'rejected').length]]);
     setWindow(lane + 'Window', bridge, bridgeNext(lane, bridge.at(-1), info, agent.length, target));
     setWindow(lane + 'ServerWindow', server, 'Chờ yêu cầu tiếp theo');
-    for (const [id, list] of [[lane + 'Log', bridge], [lane + 'ServerLog', server]]) { $(id).hidden = !focus; setLog(id, list); }
+    const clientEvents = visible.filter(event => event.source === lane || event.source === agentSource);
+    for (const [id, list] of [[lane + 'ClientLog', clientEvents], [lane + 'ServerLog', server]]) { $(id).hidden = !focus; if (focus) setLog(id, list); }
     $(lane + 'Sends').textContent = bridge.filter(event => event.event === 'attempt').length;
-    $(lane + 'Receipts').textContent = bridge.filter(event => event.event === 'result' && event.state === 'confirmed').length;
+    $(lane + 'Receipts').textContent = confirmed;
     if (info.error) message(`Luồng ${lane === 'baseline' ? 'tắt' : 'bật'} gặp lỗi tiến trình: ${info.error}`, true);
   }
-  const network = s.network;
-  $('networkNow').textContent = network?.offline ? 'Đứt mạng · hai chiều' : s.config.force === 'mixed' ? 'Cùng hồ sơ mạng' : names[s.config.force];
-  $('activeFaults').textContent = network?.offline ? 'Proxy đang ngắt cả hai luồng. Ghi trước thời điểm ngắt vẫn có thể đã xảy ra.' : lanes.map(lane => `${lane === 'baseline' ? 'Tắt' : 'Bật'}: ${network?.active?.[lane] ? names[network.active[lane].scenario] + ' đang áp dụng' : 'không có toxic đang áp dụng'}`).join(' · ');
-  profile(s.config, network);
-  $('historyLabel').textContent = cursor === null ? `Quan sát trực tiếp · ${events.length} sự kiện` : `Xem lại bước ${cursor + 1}/${events.length} · ${clock(events[cursor].time)}`;
-  $('firstStep').disabled = !events.length; $('prevStep').disabled = events.length < 2 || cursor === 0; $('nextStep').disabled = !events.length || cursor === null || cursor >= events.length - 1; $('liveView').disabled = cursor === null;
+  paintNetwork(s.network); profile(s.config, s.network);
+  const historical = lanes.some(lane => cursors[lane] !== null);
+  $('historyLabel').textContent = historical ? lanes.map(lane => `${lane === 'baseline' ? 'Tắt' : 'Bật'} ${cursors[lane] === null ? 'trực tiếp' : `${cursors[lane] + 1}/${laneEvents[lane].length}`}`).join(' · ') : `Hai luồng trực tiếp · ${events.length} sự kiện`;
+  if (s.legacy_shared_agent) $('historyLabel').textContent += ' · lượt cũ dùng chung Agent';
+  $('firstStep').disabled = !events.length;
+  $('prevStep').disabled = !lanes.some(lane => (cursors[lane] ?? laneEvents[lane].length - 1) > 0);
+  $('nextStep').disabled = !lanes.some(lane => cursors[lane] !== null && cursors[lane] < laneEvents[lane].length - 1);
+  $('liveView').disabled = !historical;
   for (const source of sources) setLog('trace-' + source, source.startsWith('server-') ? markExtras(traceStore[source]) : traceStore[source]);
-  $('traceMessage').textContent = `${events.length} sự kiện của lượt chạy${moreTrace ? ' · đang tải tiếp' : ''}. Trước/sau xem lại bằng chứng, không hoàn tác hoặc gửi lại lệnh.`;
+  $('traceMessage').textContent = `${events.length} sự kiện của lượt chạy${moreTrace ? ' · đang tải tiếp' : ''}. Các nút bước áp dụng riêng trên lịch sử mỗi luồng, không ép chạy đồng bộ. Black box luôn là mạng hiện tại.`;
 }
 function hydrate(config) {
   for (const [id, key] of [['prob','probability'], ['count','count'], ['attempts','attempts'], ['seed','seed'], ['duration','duration'], ['delay','delay_ms'], ['bandwidth','bandwidth_kb'], ['force','force'], ['pace','pace']]) $(id).value = config[key];
-  $('persistent').checked = config.persistent; $('parent').checked = config.parent_case;
+  $('persistent').checked = config.persistent; $('parent').checked = config.parent_case; $('paired').checked = config.paired_faults;
   for (const key of Object.keys(defaults)) $('weight-' + key).value = config.weights[key];
   if (focus) {
     $('count').max = '3'; $('count').value = Math.min(3, config.count);
@@ -274,7 +307,7 @@ function hydrate(config) {
   $('prob').oninput(); hydrated = true;
 }
 function resetTrace(id) {
-  runId = id; cursor = null; events = []; moreTrace = true; traceFingerprint = '';
+  runId = id; cursors = {baseline:null, reliable:null}; laneEvents = {baseline:[], reliable:[]}; events = []; moreTrace = true; traceFingerprint = '';
   traceStore = Object.fromEntries(sources.map(source => [source, []])); offsets = Object.fromEntries(sources.map(source => [source, 0])); signatures.clear();
 }
 async function loadEvents() {
@@ -287,10 +320,11 @@ async function loadEvents() {
   if (selected !== runId) return;
   moreTrace = false;
   for (const [source, page] of pages) {
-    traceStore[source].push(...page.events.map(event => ({...event, source, event:source === 'agent' ? 'issued' : event.event})));
+    traceStore[source].push(...page.events.map(event => ({...event, source, event:source.startsWith('agent-') ? 'issued' : event.event})));
     offsets[source] = page.next_offset; moreTrace ||= page.more;
   }
   events = sources.flatMap(source => traceStore[source]).sort((a, b) => a.time - b.time || sources.indexOf(a.source) - sources.indexOf(b.source) || a.trace_offset - b.trace_offset);
+  for (const lane of lanes) laneEvents[lane] = events.filter(event => event.source === lane || event.source.endsWith('-' + lane));
 }
 async function refresh() {
   if (!enabled) return;
@@ -299,7 +333,7 @@ async function refresh() {
     const response = await fetch('/state'); if (!response.ok) throw Error('Không lấy được trạng thái lab.');
     snapshot = await response.json(); if (!hydrated) hydrate(snapshot.config);
     if (snapshot.run_id !== runId) resetTrace(snapshot.run_id);
-    const fingerprint = JSON.stringify([snapshot.run_id, snapshot.agent.intents.length, ...lanes.map(lane => [snapshot.traces[lane].at(-1)?.time, snapshot.server_traces?.[lane]?.at(-1)?.time])]);
+    const fingerprint = JSON.stringify([snapshot.run_id, ...lanes.map(lane => snapshot.agents[lane].intents.length), ...lanes.map(lane => [snapshot.traces[lane].at(-1)?.time, snapshot.server_traces?.[lane]?.at(-1)?.time])]);
     if (moreTrace || fingerprint !== traceFingerprint) { await loadEvents(); traceFingerprint = fingerprint; }
     paint();
   } catch (error) { message(error.message, true); }

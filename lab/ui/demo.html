@@ -24,29 +24,35 @@
   </section>
   <p id="message" class="message" role="status" aria-atomic="true">Agent giả lập gọi MCP thật. Log và dữ liệu ghi được lấy từ lượt chạy thật.</p>
 
-  <section class="board" aria-label="Agent, đường bất định và hai trạng thái server">
-    <article class="panel agent-panel">
-      <div class="panel-head"><h2>Agent giả lập</h2><span id="issued">0 ý định</span></div>
-      <div id="agentNodes" class="nodes" aria-label="Ý định Agent"></div>
-      <div id="agentWindow"></div><div id="agentLog" class="inline-log" hidden></div>
-      <section class="bridge-observation off"><h3>Bridge · miAssura tắt</h3><div id="baselineWindow"></div><div id="baselineLog" class="inline-log" hidden></div></section>
-      <section class="bridge-observation on"><h3>Bridge · miAssura bật</h3><div id="reliableWindow"></div><div id="reliableLog" class="inline-log" hidden></div></section>
-    </article>
+  <section class="board" aria-label="Hai luồng Agent, MCP và server độc lập">
+    <section class="client-column">
+      <article class="panel client-panel off">
+        <div class="panel-head"><h2>Agent 1 · MCP 1</h2><span class="policy off">miAssura tắt</span></div>
+        <div class="client-progress"><span id="baselineIssued">0 ý định</span><span id="baselineQueue">0 đang chờ</span></div>
+        <div id="baselineAgentNodes" class="nodes" aria-label="Ý định Agent 1"></div>
+        <div id="baselineWindow"></div><div id="baselineClientLog" class="inline-log" hidden></div>
+      </article>
+      <article class="panel client-panel on">
+        <div class="panel-head"><h2>Agent 2 · MCP 2</h2><span class="policy on">miAssura bật</span></div>
+        <div class="client-progress"><span id="reliableIssued">0 ý định</span><span id="reliableQueue">0 đang chờ</span></div>
+        <div id="reliableAgentNodes" class="nodes" aria-label="Ý định Agent 2"></div>
+        <div id="reliableWindow"></div><div id="reliableClientLog" class="inline-log" hidden></div>
+      </article>
+    </section>
     <aside class="network-panel">
-      <div class="blackbox"><strong>Đường bất định</strong><span>TCP / TLS · lệnh đi, kết quả về</span><p id="networkNow">Cùng hồ sơ mạng</p></div>
+      <div class="blackbox"><strong>Đường bất định</strong><p id="networkNow">Mạng hiện tại</p><div id="activeFaults"></div></div>
       <h3>Quan sát tại hai đầu</h3>
-      <table class="endpoint-metrics"><thead><tr><th></th><th>Tắt</th><th>Bật</th></tr></thead><tbody><tr><th>Lượt thử gửi →</th><td id="baselineSends">0</td><td id="reliableSends">0</td></tr><tr><th>← Xác nhận tới bridge</th><td id="baselineReceipts">0</td><td id="reliableReceipts">0</td></tr></tbody></table>
-      <p id="activeFaults" class="note">Hai luồng độc lập cùng đi qua môi trường mạng được cấu hình.</p>
+      <table class="endpoint-metrics"><thead><tr><th></th><th>Tắt</th><th>Bật</th></tr></thead><tbody><tr><th>Lượt thử gửi →</th><td id="baselineSends">0</td><td id="reliableSends">0</td></tr><tr><th>← Xác nhận tới MCP</th><td id="baselineReceipts">0</td><td id="reliableReceipts">0</td></tr></tbody></table>
     </aside>
     <section class="server-column">
       <article class="panel server-panel off">
-        <div class="panel-head"><h2>Server · miAssura tắt</h2></div>
-        <div id="baselineMetrics" class="server-metrics"></div><div id="baselineNodes" class="nodes" aria-label="Bản ghi khi miAssura tắt"></div>
+        <div class="panel-head"><h2>Server · luồng 1</h2><span class="policy off">miAssura tắt</span></div>
+        <div id="baselineMetrics" class="server-metrics"></div><div id="baselineNodes" class="nodes" aria-label="Bản ghi luồng 1"></div>
         <div id="baselineServerWindow"></div><div id="baselineServerLog" class="inline-log" hidden></div>
       </article>
       <article class="panel server-panel on">
-        <div class="panel-head"><h2>Server · miAssura bật</h2></div>
-        <div id="reliableMetrics" class="server-metrics"></div><div id="reliableNodes" class="nodes" aria-label="Bản ghi khi miAssura bật"></div>
+        <div class="panel-head"><h2>Server · luồng 2</h2><span class="policy on">miAssura bật</span></div>
+        <div id="reliableMetrics" class="server-metrics"></div><div id="reliableNodes" class="nodes" aria-label="Bản ghi luồng 2"></div>
         <div id="reliableServerWindow"></div><div id="reliableServerLog" class="inline-log" hidden></div>
       </article>
     </section>
@@ -65,28 +71,29 @@
         <label>Giữ sự cố (giây)<input id="duration" type="number" min="0.1" max="30" step="0.1" value="4"></label>
         <label>Độ trễ (ms)<input id="delay" type="number" min="0" max="10000" value="1500"></label>
         <label>Băng thông (KB/s)<input id="bandwidth" type="number" min="1" max="10000" value="8"></label>
+        <label class="check"><input id="paired" type="checkbox"> Cùng kịch bản lỗi để đối chứng</label>
         <label class="check"><input id="parent" type="checkbox"> Task cha → checklist</label>
       </div>
       <h3>Trọng số trong các ý định gặp bất lợi</h3><div id="weights" class="weights"></div>
       <button id="apply" class="primary">Áp dụng cấu hình</button>
       <p class="note">5 lần gửi gồm lần đầu và tối đa 4 lần thử lại. Số task và giới hạn gửi áp dụng từ lượt mới; tốc độ và mạng chỉnh được khi chạy. Tối đa 100 ý định, 20 phút/lượt.</p>
-      <p class="note">Tạm dừng chặn lần gửi tiếp, không hủy request đang bay. Dừng không hoàn tác ghi. Bước trước/sau xem lại bằng chứng đã ghi nhận.</p>
+      <p class="note">Các nút chung điều khiển cả hai luồng, không đồng bộ tiến độ. Tạm dừng chặn lần gửi tiếp, không hủy request đang bay. Dừng không hoàn tác ghi. Bước trước/sau xem lại bằng chứng đã ghi nhận.</p>
     </article>
     <article class="panel distribution">
       <div class="panel-head"><h2>Loại bất định và tỷ lệ</h2><span id="profileLabel">Đang áp dụng</span></div>
       <div id="rateBar" class="rate-bar" aria-hidden="true"></div>
-      <table class="rate-table"><thead><tr><th>Điều kiện</th><th>Tỷ lệ chọn</th><th>Đã gán</th></tr></thead><tbody id="rateRows"></tbody></table>
+      <table class="rate-table"><thead><tr><th>Điều kiện</th><th>Tỷ lệ chọn</th><th>Gán · Tắt</th><th>Gán · Bật</th></tr></thead><tbody id="rateRows"></tbody></table>
       <p id="profileNote" class="note"></p>
       <p class="note">Tỷ lệ là điều kiện thí nghiệm, không phải thống kê Wi-Fi hoặc xác suất thao tác thất bại. Loại, chiều, thời điểm và timeout cùng quyết định kết quả.</p>
-      <p class="note">Các ý định đã phát giữ hồ sơ của chúng. Khôi phục bỏ sự cố hiện tại và các sự cố đang chờ; observer server không cấp bằng chứng cho bridge.</p>
+      <p class="note">Cùng tỷ lệ không có nghĩa cùng thời điểm lỗi. Các ý định đã phát giữ hồ sơ của chúng. Khôi phục bỏ sự cố hiện tại và các sự cố đang chờ; observer server không cấp bằng chứng cho bridge.</p>
     </article>
   </section>
   <section class="full-trace" aria-labelledby="traceHeading">
     <h2 id="traceHeading">Bằng chứng và trace đầy đủ</h2><p id="traceMessage" class="note">Đang tải log của lượt chạy.</p>
     <div class="trace-columns">
-      <article class="panel"><h2>Agent và bridge</h2><section class="log-group"><h3>Agent · phát ý định</h3><ol id="trace-agent" class="log-list"></ol></section><section class="log-group"><h3>Bridge · miAssura tắt</h3><ol id="trace-baseline" class="log-list"></ol></section><section class="log-group"><h3>Bridge · miAssura bật</h3><ol id="trace-reliable" class="log-list"></ol></section></article>
-      <article class="panel off"><h2>Server · miAssura tắt</h2><ol id="trace-server-baseline" class="log-list"></ol></article>
-      <article class="panel on"><h2>Server · miAssura bật</h2><ol id="trace-server-reliable" class="log-list"></ol></article>
+      <article class="panel off"><h2>Luồng 1 · miAssura tắt</h2><section class="log-group"><h3>Agent 1</h3><ol id="trace-agent-baseline" class="log-list"></ol></section><section class="log-group"><h3>MCP 1</h3><ol id="trace-baseline" class="log-list"></ol></section></article>
+      <article class="panel on"><h2>Luồng 2 · miAssura bật</h2><section class="log-group"><h3>Agent 2</h3><ol id="trace-agent-reliable" class="log-list"></ol></section><section class="log-group"><h3>MCP 2</h3><ol id="trace-reliable" class="log-list"></ol></section></article>
+      <article class="panel"><h2>Server · hai luồng</h2><section class="log-group"><h3>Luồng 1 · miAssura tắt</h3><ol id="trace-server-baseline" class="log-list"></ol></section><section class="log-group"><h3>Luồng 2 · miAssura bật</h3><ol id="trace-server-reliable" class="log-list"></ol></section></article>
     </div>
   </section>
 </main><script src="/ui/demo.js"></script>

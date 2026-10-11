@@ -86,6 +86,7 @@ class Config(BaseModel):
     duration: float = Field(default=4, ge=0.1, le=30)
     pace: float = Field(default=1, ge=0, le=10)
     parent_case: bool = False
+    paired_faults: bool = False
 
     @model_validator(mode="after")
     def valid_mix(self):
@@ -97,15 +98,20 @@ class Config(BaseModel):
 
 
 state = {"status": "idle", "config": Config().model_dump(), "run_id": None,
-         "agent": {"intents": [], "target": 0, "finished": True}, "lanes": {}, "rows": []}
+         "agents": {lane: {"intents": [], "target": 0, "finished": True} for lane in LANES},
+         "lanes": {}, "rows": [], "legacy_shared_agent": False}
 # Restore only an observer snapshot. No MCP calls or retries resume at startup.
 completed = list(RUNTIME.glob("run-*.json"))
 if completed:
     try:
         saved = json.loads(max(completed, key=lambda path: path.stat().st_mtime).read_text(encoding="utf-8"))
         if saved["status"] == "finished":
-            state.update({key: saved[key] for key in state})
+            state.update({key: saved[key] for key in state if key in saved})
             state["run_id"] = UUID(saved["run_id"])
+            if "agents" not in saved:
+                state["agents"] = {lane: saved["agent"] for lane in LANES}
+                state["legacy_shared_agent"] = True
+            state["config"] = Config(**state["config"]).model_dump()
     except (OSError, ValueError, KeyError):
         pass  # Incomplete diagnostic snapshots never start application work.
 control_path = RUNTIME / "control.json"
@@ -149,7 +155,9 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 app.mount("/ui", StaticFiles(directory=ROOT / "lab/ui", html=True), name="ui")
 TRACE_FILES = {"agent": "agent-events.jsonl", **{
-    source: f"{source}-events.jsonl" for source in (*LANES, "server-baseline", "server-reliable")
+    source: f"{source}-events.jsonl" for source in (
+        *LANES, "server-baseline", "server-reliable", "agent-baseline", "agent-reliable",
+    )
 }}
 
 
@@ -188,15 +196,18 @@ async def snapshot():
                               and value is not None else value for key, value in dict(row).items()} for row in rows]
         except asyncpg.UndefinedTableError:
             state["rows"] = []
-    counts = {name: 0 for name in ("normal", *DEFAULT_WEIGHTS, "outage")}
-    for intent in state["agent"]["intents"]:
-        if intent.get("scenario") in counts:
-            counts[intent["scenario"]] += 1
+    counts = {}
+    for lane in LANES:
+        counts[lane] = {name: 0 for name in ("normal", *DEFAULT_WEIGHTS, "outage")}
+        for intent in state["agents"][lane]["intents"]:
+            if intent.get("scenario") in counts[lane]:
+                counts[lane][intent["scenario"]] += 1
     return {**state, "run_id": str(state["run_id"]) if state["run_id"] else None,
             "traces": {lane: recent_events(lane) for lane in LANES},
             "server_traces": {lane: recent_events(f"server-{lane}") for lane in LANES},
-            "network": {"offline": faults.offline, "active": dict(faults.active), "assigned": counts,
-                        "assigned_available": any("scenario" in item for item in state["agent"]["intents"])}}
+            "network": {"offline": faults.offline, "active": dict(faults.active), "assigned_by_lane": counts,
+                        "assigned_available": any("scenario" in item for agent in state["agents"].values()
+                                                  for item in agent["intents"])}}
 
 
 @app.get("/trace/{lane}")
@@ -207,6 +218,9 @@ async def trace_page(lane: str, run_id: UUID | None = None,
         raise HTTPException(404, "Unknown trace source")
     selected_run = run_id or state["run_id"]
     path = RUNTIME / "runs" / str(selected_run) / TRACE_FILES[lane]
+    if not path.exists() and lane.startswith("agent-"):
+        # Archived runs used one emitter. Preserve evidence; label that topology in the UI.
+        path = path.with_name("agent-events.jsonl")
     if not path.exists():
         return {"run_id": str(selected_run), "events": [], "next_offset": 0, "more": False}
     events = []
@@ -240,19 +254,21 @@ async def configure(config: Config):
     return state["config"]
 
 
-def plan(seq):
-    if seq not in plans:
+def plan(lane, seq):
+    key = (lane, seq)
+    if key not in plans:
         config = Config(**state["config"])
+        seed = config.seed if config.paired_faults else config.seed * 2 + list(LANES).index(lane)
         scenario = config.force if config.force != "mixed" else pick_scenario(
-            config.seed, seq, config.probability, config.weights,
+            seed, seq, config.probability, config.weights,
         )
-        plans[seq] = {"scenario": scenario, "duration": config.duration,
+        plans[key] = {"scenario": scenario, "duration": config.duration,
                       "delay_ms": config.delay_ms, "bandwidth_kb": config.bandwidth_kb}
-    return plans[seq]
+    return plans[key]
 
 
-async def emit_intents(run_id, config, released, started):
-    """One scripted Agent releases the same intent to both independent lanes."""
+async def emit_intents(lane, run_id, config, released, started):
+    """Each Agent owns its IDs, queue and pacing clock. Controls are broadcast only."""
     try:
         for seq in range(1, config.count + 1):
             elapsed = 0.0
@@ -268,15 +284,15 @@ async def emit_intents(run_id, config, released, started):
                         break
                 previous = now
                 await asyncio.sleep(0.05)
-            intent = {"event": "issued", "seq": seq, "intent_id": str(uuid5(NAMESPACE_URL, f"{run_id}:{seq}")),
-                      "time": time.time()}
-            intent["scenario"] = "outage" if faults.offline else plan(seq)["scenario"]
-            plan(seq)  # Retain the actual frozen episode even during a full outage.
-            state["agent"]["intents"].append(intent)
-            append(RUNTIME / "runs" / str(run_id) / "agent-events.jsonl", intent)
+            intent = {"event": "issued", "seq": seq, "lane": lane,
+                      "intent_id": str(uuid5(NAMESPACE_URL, f"{run_id}:{lane}:{seq}")), "time": time.time()}
+            intent["scenario"] = "outage" if faults.offline else plan(lane, seq)["scenario"]
+            plan(lane, seq)  # Retain the actual frozen episode even during a full outage.
+            state["agents"][lane]["intents"].append(intent)
+            append(RUNTIME / "runs" / str(run_id) / f"agent-{lane}-events.jsonl", intent)
             released[seq].set()
     finally:
-        state["agent"]["finished"] = True
+        state["agents"][lane]["finished"] = True
         for event in released.values():
             event.set()  # Wake consumers on Stop, including unreleased intents.
 
@@ -307,7 +323,7 @@ async def lane_run(lane, run_id, config, released, started):
                 await released[seq].wait()
                 while control() == "pause" and time.monotonic() - started < 1200:
                     await asyncio.sleep(0.1)
-                if control() == "stop" or seq > len(state["agent"]["intents"]):
+                if control() == "stop" or seq > len(state["agents"][lane]["intents"]):
                     break
                 if time.monotonic() - started >= 1200:
                     info["state"] = "session_limit"
@@ -317,11 +333,11 @@ async def lane_run(lane, run_id, config, released, started):
                     await faults.clear(lane)
                     result = await client.call_tool("warmup")
                     info["warmup"] = result.structured_content
-                episode = plan(seq)
+                episode = plan(lane, seq)
                 healthy_now = state["config"]["probability"] == 0 and state["config"]["force"] in ("mixed", "normal")
                 # A live restore overrides active/queued faults, not write results.
                 await faults.apply(lane, **{**episode, "scenario": "normal" if healthy_now else episode["scenario"]})
-                intent_id = state["agent"]["intents"][seq - 1]["intent_id"]
+                intent_id = state["agents"][lane]["intents"][seq - 1]["intent_id"]
                 operation = {"run_id": str(run_id), "intent_id": intent_id, "seq": seq,
                              "title": "Task A" if config.parent_case and seq == 1 else f"Task {seq}",
                              "parent_id": parent_id if config.parent_case and seq > 1 else None}
@@ -364,16 +380,20 @@ async def run(config):
     run_dir = RUNTIME / "runs" / str(run_id)
     run_dir.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
-    released = {seq: asyncio.Event() for seq in range(1, config.count + 1)}
+    released = {lane: {seq: asyncio.Event() for seq in range(1, config.count + 1)} for lane in LANES}
     state.update({"status": "running", "run_id": run_id, "rows": [],
-                  "agent": {"intents": [], "target": config.count, "finished": False}, "lanes": {
+                  "legacy_shared_agent": False,
+                  "agents": {lane: {"intents": [], "target": config.count, "finished": False} for lane in LANES},
+                  "lanes": {
         lane: {"seq": 0, "state": "ready", "results": []} for lane in LANES
     }})
     plans.clear()
     set_control("run")
     append(RUNTIME / "config-events.jsonl", {"run_id": str(run_id), "initial_config": config.model_dump()})
-    await asyncio.gather(emit_intents(run_id, config, released, started),
-                         *(lane_run(lane, run_id, config, released, started) for lane in LANES))
+    await asyncio.gather(
+        *(emit_intents(lane, run_id, config, released[lane], started) for lane in LANES),
+        *(lane_run(lane, run_id, config, released[lane], started) for lane in LANES),
+    )
     state["status"] = "finished"
     snapshot_result = await snapshot()
     (RUNTIME / f"run-{run_id}.json").write_text(json.dumps(snapshot_result, ensure_ascii=False, indent=2), encoding="utf-8")

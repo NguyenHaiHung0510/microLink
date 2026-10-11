@@ -19,8 +19,9 @@ Ngày: 11/10/2026. Thuật toán ưu tiên nhỏ và dễ học; transport và h
 - Baseline API tạo record mới mỗi POST; reliable API nhận stable ID. Whole-solution comparison phải công bố server participation.
 - Cả hai luồng đều dùng microLink. Tắt miAssura giữ retry thông thường; bật miAssura
   áp dụng stable-ID/replay và hàng rào xác nhận. API cũng phải tôn trọng ID đó.
-- Agent giả lập phát cùng ID ý định cho hai luồng, mặc định1 giây/ý định. Nhịp phát
-  độc lập với retry; các lệnh đã phát chờ trong hàng đợi của từng luồng.
+- Hai Agent giả lập độc lập, mỗi Agent có ID, nhịp phát, hàng đợi và bridge MCP riêng.
+  Mặc định1 giây/ý định. Nhịp phát độc lập với retry; mỗi bridge chỉ nhận kết quả
+  từ endpoint của mình. Số task giống nhau phục vụ đối chứng, không chia sẻ ID.
 - Tốc độ phát0..10 giây có thể đổi live. Queue chỉ nằm trong RAM của lab, không phải
   cam kết outbox bền vững khi crash. Confirmation barrier vẫn chặn ghi phụ thuộc.
 
@@ -45,7 +46,9 @@ Ngày: 11/10/2026. Thuật toán ưu tiên nhỏ và dễ học; transport và h
 Synthetic local lab, MCP/STDIO thật, HTTPS verify thật, portable PostgreSQL private.
 Không tích hợp tài khoản microSched, auth/pairing/privacy, crash durability, journal,
 server sequencer hoặc generic DAG scheduler trong bản đầu. Hai chế độ UI Đối chứng/
-Giải thích đều giữ ba màn Agent và hai trạng thái server. Cấu hình chi tiết nằm dưới.
+Giải thích hiển thị hai cặp Agent/MCP → server; cấu hình chi tiết nằm dưới.
+API dùng một tiến trình và database với namespace riêng cho mỗi luồng, không phải
+hai máy chủ vật lý. Mỗi luồng có một kết nối/proxy riêng.
 
 ## Live observation and history
 
@@ -60,3 +63,14 @@ write may complete. Current network/profile data stays current during history re
 Fault percentages are configured exposure probabilities, distinct from assigned
 intent counts and observed failures. Both independent proxy lanes share one profile;
 the common black box does not claim one physical connection or packet visibility.
+
+By default, each lane draws a deterministic but independent fault sequence from
+the configured seed. Paired mode selects the same scenario per task number for
+benchmark comparison, without sharing IDs or requiring equal execution times.
+The benchmark script enables paired mode explicitly. Live settings changes are
+not a frozen benchmark.
+
+Common Start/Pause/Resume/Stop controls broadcast the action to both Agents and
+bridges. Each history step moves one recorded event on each lane independently;
+clicking a trace event selects only its lane. Historical snapshots never drive
+the recovery algorithm. The network box always describes current proxy conditions.

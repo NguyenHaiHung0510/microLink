@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>microLink · miTrust lab</title>
+  <link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+<main>
+  <section class="presentation" aria-label="Demo trực tiếp">
+    <header>
+      <div><a class="brand" href="/">microLink <span>/ miTrust lab</span></a><h1>Một ý định. Hai cách xử lý.</h1></div>
+      <div class="header-right"><nav class="modes" aria-label="Cách trình bày"><a id="compareMode" href="?view=compare">Đối chứng</a><a id="focusMode" href="?view=focus">Giải thích</a></nav><button id="fullscreen">Toàn màn hình</button><span id="runState" class="badge">Sẵn sàng</span></div>
+    </header>
+    <section class="toolbar" aria-label="Điều khiển nhanh">
+      <div class="toolbar-row">
+        <div class="buttons"><button class="primary" id="start">Chạy lượt mới</button><button id="pause">Tạm dừng</button><button id="resume">Tiếp tục</button><button id="stop">Dừng</button></div>
+        <label class="speed">Agent phát mỗi <input id="pace" type="number" min="0" max="10" step="0.1" value="1"> giây/task</label>
+      </div>
+      <div class="toolbar-row network">
+        <label for="prob">Mạng bất lợi <strong id="probLabel">30%</strong></label><span class="badge" id="scenarioBadge">Hỗn hợp</span><input id="prob" type="range" min="0" max="100" value="30">
+        <button id="offline">Đứt mạng · 100%</button><button id="restore">Khôi phục · 0%</button>
+      </div>
+      <p id="message" role="status" aria-atomic="true">Cùng chuỗi ý định và hồ sơ sự cố. Server chỉ là góc nhìn quan sát.</p>
+    </section>
+    <section class="board" aria-label="Agent và hai trạng thái server">
+      <article class="panel agent-panel">
+        <div class="panel-heading"><span class="step">01</span><div><p class="eyebrow">AGENT GIẢ LẬP</p><h2>Ý định gửi đi</h2></div><span class="badge" id="agentBadge">Sẵn sàng</span></div>
+        <div class="current"><span class="caption">Task vừa phát</span><strong id="agentCurrent">—</strong><span id="agentRate">1 giây/task</span></div>
+        <div id="agentMetrics" class="metrics"></div>
+        <p class="section-label">Chuỗi ý định · chưa phải xác nhận ghi</p>
+        <div id="agentSequence" class="sequence" tabindex="0" aria-label="Các task Agent đã phát"></div>
+        <div class="panel-footer"><p id="agentQueue">Mỗi ý định được chuyển tới cả hai luồng.</p><p class="transport">MCP/STDIO → microLink → HTTPS</p></div>
+      </article>
+      <article class="panel server-panel baseline" id="baselinePanel">
+        <div class="panel-heading"><span class="step">02</span><div><p class="eyebrow">microLink</p><h2>miTrust <span class="policy off">Tắt</span></h2></div></div>
+        <div class="client-state"><span class="caption">Bridge biết gì?</span><strong id="baselineState">Chưa gửi</strong><span id="baselineAttempt">Chờ ý định</span></div>
+        <div id="baselineMetrics" class="metrics"></div>
+        <p class="section-label">Server đã ghi <span>· bản ghi theo thứ tự chèn</span></p>
+        <div id="baselineSequence" class="sequence" tabindex="0" aria-label="Các bản ghi server khi miTrust tắt"></div>
+        <div class="mini-trace" id="baselineMini"></div>
+        <div class="panel-footer"><p id="baselineQueue">Chờ ý định</p><p>Retry thông thường; server tạo bản ghi mới.</p></div>
+      </article>
+      <article class="panel server-panel reliable" id="reliablePanel">
+        <div class="panel-heading"><span class="step">03</span><div><p class="eyebrow">microLink</p><h2>miTrust <span class="policy on">Bật</span></h2></div></div>
+        <div class="client-state"><span class="caption">Bridge biết gì?</span><strong id="reliableState">Chưa gửi</strong><span id="reliableAttempt">Chờ ý định</span></div>
+        <div id="reliableMetrics" class="metrics"></div>
+        <p class="section-label">Server đã ghi <span>· bản ghi theo thứ tự chèn</span></p>
+        <div id="reliableSequence" class="sequence" tabindex="0" aria-label="Các bản ghi server khi miTrust bật"></div>
+        <div class="mini-trace" id="reliableMini"></div>
+        <div class="panel-footer"><p id="reliableQueue">Chờ ý định</p><p>Cùng ID khi retry; xác nhận rồi mới đi tiếp.</p></div>
+      </article>
+    </section>
+    <p class="legend"><span class="swatch duplicate">↻</span> Ghi thừa cùng ý định <span class="divider">/</span> Chưa biết ≠ chưa ghi <span class="divider">/</span> miTrust cần API tôn trọng ID cố định.</p>
+  </section>
+  <section class="details-area">
+    <details class="panel" id="settings"><summary>Cấu hình chi tiết <span>Task, retry, kịch bản và phân bổ sự cố</span></summary>
+      <div class="settings">
+        <label>Số task<input id="count" type="number" min="1" max="100" value="10"></label>
+        <label>Tổng attempts/task<input id="attempts" type="number" min="1" max="250" value="5"></label>
+        <label class="check"><input id="persistent" type="checkbox"> Retry dài · tối đa 250 attempts</label>
+        <label>Kịch bản<select id="force"><option value="mixed">Hỗn hợp theo tỷ lệ</option><option value="normal">Bình thường</option><option value="request">Cản chiều lệnh đi</option><option value="response">Mất kết quả về</option><option value="latency">Phản hồi chậm</option><option value="bandwidth">Băng thông thấp</option><option value="reset">Reset kết nối</option><option value="partial">Kết quả chưa đầy đủ</option></select></label>
+        <label class="check"><input id="parent" type="checkbox"> Task cha → checklist</label>
+        <label>Seed<input id="seed" type="number" min="0" max="1000000" value="42"></label>
+        <label>Giữ sự cố (giây)<input id="duration" type="number" min="0.1" max="30" step="0.1" value="4"></label>
+        <label>Độ trễ (ms)<input id="delay" type="number" min="0" max="10000" value="1500"></label>
+        <label>Băng thông (KB/s)<input id="bandwidth" type="number" min="1" max="10000" value="8"></label>
+      </div>
+      <h3>Trọng số trong các lượt bất lợi</h3><div id="weights" class="settings"></div>
+      <p class="note">Dưới 100%, tỷ lệ bất lợi được chia theo các trọng số này. 100% là quy ước đứt mạng toàn phần. Đây là điều kiện giả lập, không phải thống kê mạng thực tế.</p>
+      <p class="note">Tốc độ Agent và mạng chỉnh được khi chạy. Số task, retry và task cha áp dụng từ lượt mới. Tối đa 100 ý định và 20 phút/lượt. Tạm dừng không hủy request đang bay; Dừng không hoàn tác ghi.</p>
+    </details>
+    <details class="panel full-trace" id="trace"><summary>Bằng chứng và trace <span>Tách điều bridge biết khỏi dữ liệu server</span></summary><div id="traceRows" class="trace-columns"></div></details>
+  </section>
+</main>
+<script src="/ui/demo.js"></script>
+</body>
+</html>

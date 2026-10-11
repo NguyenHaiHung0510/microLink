@@ -1,0 +1,13 @@
+.venv/
+.runtime/
+.tools/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key

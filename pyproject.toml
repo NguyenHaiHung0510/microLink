@@ -1,0 +1,23 @@
+[project]
+name = "microlink"
+version = "0.1.0"
+description = "MCP STDIO to HTTPS write-recovery experiment with a separate TCP fault proxy"
+requires-python = "==3.14.*"
+dependencies = [
+  "mcp==2.3.0", "mcp-types==2.3.0", "httpx2==2.13.1",
+  "pydantic==2.13.4", "anyio==4.14.2", "fastapi==0.141.1",
+  "uvicorn==0.52.4", "asyncpg==0.31.0", "sqlalchemy==2.0.51",
+  "cryptography==50.0.1", "pytest==9.1.1", "ruff==0.16.5",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]

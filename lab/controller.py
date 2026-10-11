@@ -7,10 +7,10 @@ import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import asyncpg
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from mcp import Client
@@ -98,6 +98,16 @@ class Config(BaseModel):
 
 state = {"status": "idle", "config": Config().model_dump(), "run_id": None,
          "agent": {"intents": [], "target": 0, "finished": True}, "lanes": {}, "rows": []}
+# Restore only an observer snapshot. No MCP calls or retries resume at startup.
+completed = list(RUNTIME.glob("run-*.json"))
+if completed:
+    try:
+        saved = json.loads(max(completed, key=lambda path: path.stat().st_mtime).read_text(encoding="utf-8"))
+        if saved["status"] == "finished":
+            state.update({key: saved[key] for key in state})
+            state["run_id"] = UUID(saved["run_id"])
+    except (OSError, ValueError, KeyError):
+        pass  # Incomplete diagnostic snapshots never start application work.
 control_path = RUNTIME / "control.json"
 faults = Faults()
 run_task = None
@@ -126,6 +136,7 @@ async def lifespan(app):
                 raise
             await asyncio.sleep(0.25)
     app.state.pool = await asyncpg.create_pool(DB, min_size=1, max_size=2)
+    await faults.set_offline(state["config"]["probability"] == 100)
     yield
     set_control("stop")
     if run_task and not run_task.done():
@@ -136,7 +147,29 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/ui", StaticFiles(directory=ROOT / "lab/ui"), name="ui")
+app.mount("/ui", StaticFiles(directory=ROOT / "lab/ui", html=True), name="ui")
+TRACE_FILES = {"agent": "agent-events.jsonl", **{
+    source: f"{source}-events.jsonl" for source in (*LANES, "server-baseline", "server-reliable")
+}}
+
+
+def recent_events(source, limit=25):
+    path = RUNTIME / "runs" / str(state["run_id"]) / TRACE_FILES[source]
+    if not path.exists():
+        return []
+    with path.open("rb") as stream:
+        start = max(0, path.stat().st_size - 65536)
+        stream.seek(start)
+        lines = stream.read().decode("utf-8", errors="replace").splitlines()
+    if start:
+        lines = lines[1:]
+    events = []
+    for line in lines[-limit:]:
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            pass  # An append in progress is not a complete event.
+    return events
 
 
 @app.get("/")
@@ -155,23 +188,44 @@ async def snapshot():
                               and value is not None else value for key, value in dict(row).items()} for row in rows]
         except asyncpg.UndefinedTableError:
             state["rows"] = []
-    traces = {}
-    for lane in LANES:
-        path = RUNTIME / "runs" / str(state["run_id"]) / f"{lane}-events.jsonl"
-        traces[lane] = []
-        if path.exists():
-            with path.open("rb") as stream:
-                start = max(0, path.stat().st_size - 65536)
-                stream.seek(start)
-                lines = stream.read().decode("utf-8", errors="replace").splitlines()
-            if start:
-                lines = lines[1:]
-            for line in lines[-25:]:
-                try:
-                    traces[lane].append(json.loads(line))
-                except ValueError:
-                    pass  # An append in progress is not an authoritative full event.
-    return {**state, "run_id": str(state["run_id"]) if state["run_id"] else None, "traces": traces}
+    counts = {name: 0 for name in ("normal", *DEFAULT_WEIGHTS, "outage")}
+    for intent in state["agent"]["intents"]:
+        if intent.get("scenario") in counts:
+            counts[intent["scenario"]] += 1
+    return {**state, "run_id": str(state["run_id"]) if state["run_id"] else None,
+            "traces": {lane: recent_events(lane) for lane in LANES},
+            "server_traces": {lane: recent_events(f"server-{lane}") for lane in LANES},
+            "network": {"offline": faults.offline, "active": dict(faults.active), "assigned": counts,
+                        "assigned_available": any("scenario" in item for item in state["agent"]["intents"])}}
+
+
+@app.get("/trace/{lane}")
+async def trace_page(lane: str, run_id: UUID | None = None,
+                     offset: int = Query(default=0, ge=0), limit: int = Query(default=250, ge=1, le=500)):
+    """Read the WHOLE history incrementally, including completed archived runs."""
+    if lane not in TRACE_FILES:
+        raise HTTPException(404, "Unknown trace source")
+    selected_run = run_id or state["run_id"]
+    path = RUNTIME / "runs" / str(selected_run) / TRACE_FILES[lane]
+    if not path.exists():
+        return {"run_id": str(selected_run), "events": [], "next_offset": 0, "more": False}
+    events = []
+    with path.open("rb") as stream:
+        stream.seek(min(offset, path.stat().st_size))
+        for _ in range(limit):
+            position = stream.tell()
+            line = stream.readline()
+            if not line or not line.endswith(b"\n"):
+                stream.seek(position)  # Retry a writer's incomplete last line later.
+                break
+            try:
+                events.append({**json.loads(line), "trace_offset": position})
+            except ValueError:
+                events.append({"event": "trace_error", "reason": "Unreadable trace record",
+                               "trace_offset": position})
+        next_offset = stream.tell()
+    return {"run_id": str(selected_run), "events": events, "next_offset": next_offset,
+            "more": next_offset < path.stat().st_size}
 
 
 @app.post("/config")
@@ -214,9 +268,10 @@ async def emit_intents(run_id, config, released, started):
                         break
                 previous = now
                 await asyncio.sleep(0.05)
-            intent = {"seq": seq, "intent_id": str(uuid5(NAMESPACE_URL, f"{run_id}:{seq}")),
+            intent = {"event": "issued", "seq": seq, "intent_id": str(uuid5(NAMESPACE_URL, f"{run_id}:{seq}")),
                       "time": time.time()}
-            plan(seq)
+            intent["scenario"] = "outage" if faults.offline else plan(seq)["scenario"]
+            plan(seq)  # Retain the actual frozen episode even during a full outage.
             state["agent"]["intents"].append(intent)
             append(RUNTIME / "runs" / str(run_id) / "agent-events.jsonl", intent)
             released[seq].set()
@@ -338,6 +393,8 @@ async def start(config: Config):
 async def action(action: str):
     if action not in ("pause", "run", "stop"):
         raise HTTPException(400, "Unknown action")
+    if not run_task or run_task.done():
+        raise HTTPException(409, "No active run; start a new run")
     set_control(action)
     state["status"] = {"pause": "paused", "run": "running", "stop": "stopping"}[action]
     return {"action": action}

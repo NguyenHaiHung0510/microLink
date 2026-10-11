@@ -56,8 +56,21 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | D41 | Earlier UI selection was deferred; D42 supersedes that state. |
 | D42 | Keep BOTH Compare and Explain. Show Agent and both servers in one desktop view; details below. Agent interval defaults to1s, adjustable0..10s live. |
 | D43 | Both lanes use microLink. Only one applies the full recovery contract, including server support. |
-| D44 | Name the recovery mechanism **miTrust**. Keep recovery.py as its code entry point. |
+| D44 | Earlier name miTrust; superseded by D46. Keep recovery.py as the code entry point. |
 | D45 | Write short, clear reader documentation. Keep AI coordination details out of README. |
+| D46 | Rename the mechanism **miAssura**, with the motto **Reliability Through Uncertainty**. |
+| D47 | Give the main UI to task nodes and communication; move detailed metrics/settings below. |
+| D48 | Represent the network as an uncertainty black box with outward commands and returning results. Do not claim visibility into individual encrypted packets. |
+| D49 | Keep full current-run trace, with compact text/symbols for distinct states. Build HTML alternatives before the visual redesign is selected. |
+| D50 | Explain mode uses1–3 intents in a controlled reproducible case; keep policy on/off comparison. Network injection stays at the proxy, observed outcomes stay at the server. |
+| D51 | Select the B black-box direction for Compare. This selection does not settle the Explain layout or authorize replacing the live UI before the revised preview is reviewed. |
+| D52 | Put bridge evidence and decisions on the Agent side. Server panels show received requests, writes/replays and response sending; they do not know whether a response reached the bridge. |
+| D53 | Compare uses three-line event windows: prior event, highlighted current event and muted next planned action. Explain prints complete chronological logs. Keep full history below. |
+| D54 | Use the live labels Compare and Explain without a fixed task count. Preserve configurable task count, total attempts, Agent pace and network settings. |
+| D55 | One compact black box represents the common network profile for two independent lanes. Label endpoint counters as observations at the endpoints, not inside encrypted traffic. |
+| D56 | Show full evidence/trace openly in vertical source columns; no folding, last-N cap or narrow internal scrollbar. |
+| D57 | Owner explicitly authorized the B-based live redesign on 2026-10-11. This supersedes the D51 implementation hold. Add a live panel of configured fault-type percentages and assigned-intent counts. |
+| D58 | Previous/next inspect chronological evidence from a real run; they never undo commits or claim to step encrypted packets. Pause/resume control future sends; in-flight work may still finish. |
 
 ## Open work
 
@@ -75,8 +88,15 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | R18 | Standalone implementation complete; broader production work remains separate. |
 | R29 | One core/lab/docs repo; runtime and course artifacts are excluded from publication. |
 | R30 | Portable PostgreSQL runs directly on Windows; no Docker or global service upgrade. |
-| R32 | Closed: miTrust selected under D44. |
+| R32 | Name updated to miAssura under D46. |
 | R34 | Short README prepared; detailed contracts and evidence are linked. |
+| R35 | Rename/motto applied: miAssura — Reliability Through Uncertainty. |
+| R36 | Detailed recovery/settings/metrics lesson prepared in the course workspace; learning acceptance remains separate. |
+| R37 | Whole-trace reader and compact state display verified:280 baseline events and46 reliable events, matching the complete archived logs. |
+| R38 | Network black-box representation accepted; animated UI must identify observation vs inference. |
+| R39 | Controlled Explain presets are live. Request suppression, lost response and disconnect have runtime evidence; the late-response preset is implemented but not separately GUI-verified. Duplication is an observed outcome, not an injected server error. |
+| R41 | Live UI now displays real three-line event windows and full Explain logs, with historical steps. A 100-intent mixed run confirmed both streams: 110 baseline rows / 100 reliable rows, 10 / 0 extra effects. |
+| R40 | Owner approved live implementation under D57. B layout is live with endpoint logs, common network box and open full trace. Maintainer runtime smoke passed; final Owner demo acceptance remains pending. |
 
 ## Current evidence
 

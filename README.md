@@ -1,13 +1,15 @@
 # microLink
 
-A local MCP/STDIO-to-HTTPS bridge. **miTrust** is its write-recovery mechanism.
+A local MCP/STDIO-to-HTTPS bridge. **miAssura** is its write-recovery mechanism.
+
+**Reliability Through Uncertainty.**
 
 The current implementation is a synthetic research lab. It is not yet connected
 to a real microSched account or Codex session.
 
     Scripted Agent → MCP/STDIO → microLink → HTTPS proxy → API → PostgreSQL
 
-## How miTrust works
+## How miAssura works
 
 1. Keep one intent ID and payload across retries.
 2. Treat a missing or invalid receipt as **unknown**, not as a failed write.
@@ -27,8 +29,10 @@ powershell -File scripts/start.ps1
 ```
 
 Open [the demo](http://127.0.0.1:19030). It shows one scripted Agent and two
-microLink lanes: **miTrust off** and **miTrust on**. Adjust the Agent rate and
+microLink lanes: **miAssura off** and **miAssura on**. Adjust the Agent rate and
 network faults live. Use **Compare** for the streams or **Explain** for the trace.
+Previous/next inspect recorded events; they do not undo writes. The full trace and
+configured fault distribution are shown below the main view.
 
 The comparison includes server support: the off lane creates a new record on each
 POST; the on lane creates or replays the same ID. The proxy injects faults.
@@ -48,7 +52,7 @@ Local policy, MCP/HTTPS integration and Agent-cadence checks pass.
 See [verification](docs/verification.md) and the [pilot comparison](docs/benchmark-pilot.md).
 
 Fault rates are synthetic. Retry budgets are finite. Permanent disconnection can
-leave a write unknown; miTrust does not promise completion without connectivity.
+leave a write unknown; miAssura does not promise completion without connectivity.
 Crash recovery, multi-client ordering and production integration are not verified.
 
 [Contract](docs/lab-contract.md) · [Project decisions](docs/decisions/project-ledger.md)

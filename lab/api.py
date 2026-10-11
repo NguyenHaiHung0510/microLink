@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 import asyncpg
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from lab.settings import DB, RUNTIME
@@ -35,6 +35,39 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 
 
+def observe(context, event, **details):
+    """Server-side evidence only. These files are never read by the bridge."""
+    entry = {"time": time.time(), "event": event, **context, **details}
+    directory = RUNTIME / "runs" / context["run_id"]
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / f"server-{context['lane']}-events.jsonl").open("a", encoding="utf-8") as output:
+        output.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+class ObserveResponses:
+    """Log when the ASGI server accepts the final response body for sending."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        status = None
+
+        async def observed_send(message):
+            nonlocal status
+            if message["type"] == "http.response.start":
+                status = message["status"]
+            await send(message)
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                context = scope.get("lab_operation")
+                if context:
+                    observe(context, "response_sent", http_status=status)
+
+        await self.app(scope, receive, observed_send)
+
+
+app.add_middleware(ObserveResponses)
+
+
 class Task(BaseModel):
     run_id: UUID
     intent_id: UUID
@@ -50,9 +83,13 @@ async def health():
 
 
 @app.post("/{lane}/tasks")
-async def create(lane: str, task: Task, response: Response):
+async def create(lane: str, task: Task, response: Response, request: Request):
     if lane not in ("baseline", "reliable") or lane != task.lane:
         raise HTTPException(400, "Invalid lane")
+    context = {"run_id": str(task.run_id), "lane": lane, "intent_id": str(task.intent_id),
+               "seq": task.seq, "request_id": str(uuid4())}
+    request.scope["lab_operation"] = context
+    observe(context, "received")
     entity_id = task.intent_id if lane == "reliable" else uuid4()
     try:
         async with app.state.pool.acquire() as connection:
@@ -71,12 +108,17 @@ async def create(lane: str, task: Task, response: Response):
                     if (row["seq"], row["title"], row["parent_id"]) != (task.seq, task.title, task.parent_id):
                         raise HTTPException(409, "Same ID with different payload")
         # Transaction exited successfully: only now can this API confirm the write.
+    except HTTPException as error:
+        observe(context, "rejected", http_status=error.status_code, reason=error.detail)
+        raise
     except asyncpg.ForeignKeyViolationError:
+        observe(context, "rejected", http_status=409, reason="Parent is not present")
         raise HTTPException(409, "Parent is not present; create/confirm the parent first") from None
     result = {key: str(value) if isinstance(value, UUID) else value for key, value in dict(row).items()}
     result["committed_at"] = result["committed_at"].isoformat()
     result["created"] = created
     response.status_code = 201 if created else 200
+    observe(context, "commit" if created else "replay", receipt=result)
     with (RUNTIME / "api-events.jsonl").open("a", encoding="utf-8") as events:
         events.write(json.dumps({"time": time.time(), "event": "commit" if created else "replay", **result}) + "\n")
     return result

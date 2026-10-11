@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import random
+import time
 
 import httpx2 as httpx
 
@@ -26,6 +27,7 @@ class Faults:
         self.client = httpx.AsyncClient(base_url=f"http://127.0.0.1:{PROXY_CONTROL_PORT}", trust_env=False)
         self.timers = {}
         self.offline = False
+        self.active = {}
 
     async def setup(self):
         for lane, port in LANES.items():
@@ -46,6 +48,7 @@ class Faults:
         for toxic in response.json():
             response = await self.client.delete(f"{path}/{toxic['name']}")
             response.raise_for_status()
+        self.active.pop(lane, None)
 
     async def set_offline(self, offline):
         self.offline = offline
@@ -72,6 +75,8 @@ class Faults:
             "toxicity": 1.0, "attributes": attributes,
         })
         response.raise_for_status()
+        self.active[lane] = {"scenario": scenario, "direction": direction,
+                             "until": time.time() + duration, "attributes": attributes}
 
         async def expire():
             await asyncio.sleep(duration)

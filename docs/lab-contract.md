@@ -1,4 +1,4 @@
-# miTrust — hợp đồng thao tác ghi
+# miAssura — hợp đồng thao tác ghi
 
 Ngày: 11/10/2026. Thuật toán ưu tiên nhỏ và dễ học; transport và hạ tầng được tách riêng.
 
@@ -17,7 +17,7 @@ Ngày: 11/10/2026. Thuật toán ưu tiên nhỏ và dễ học; transport và h
 - Không tuyên bố MCP tự sắp mọi tool calls, hoặc cần khóa mọi stream toàn hệ thống.
 - Stop/cancel không undo effect đã gửi; request cũ có thể tới muộn. Giữ UNKNOWN khi thiếu evidence.
 - Baseline API tạo record mới mỗi POST; reliable API nhận stable ID. Whole-solution comparison phải công bố server participation.
-- Cả hai luồng đều dùng microLink. Tắt miTrust giữ retry thông thường; bật miTrust
+- Cả hai luồng đều dùng microLink. Tắt miAssura giữ retry thông thường; bật miAssura
   áp dụng stable-ID/replay và hàng rào xác nhận. API cũng phải tôn trọng ID đó.
 - Agent giả lập phát cùng ID ý định cho hai luồng, mặc định1 giây/ý định. Nhịp phát
   độc lập với retry; các lệnh đã phát chờ trong hàng đợi của từng luồng.
@@ -46,3 +46,17 @@ Synthetic local lab, MCP/STDIO thật, HTTPS verify thật, portable PostgreSQL 
 Không tích hợp tài khoản microSched, auth/pairing/privacy, crash durability, journal,
 server sequencer hoặc generic DAG scheduler trong bản đầu. Hai chế độ UI Đối chứng/
 Giải thích đều giữ ba màn Agent và hai trạng thái server. Cấu hình chi tiết nằm dưới.
+
+## Live observation and history
+
+Agent, bridge and API write separate traces. The API observes receipt, commit/replay,
+rejection and final ASGI response-send completion. Response-send does not prove the
+bridge received it. No observer output is fed into miAssura.
+
+Previous/next inspect recorded events of the selected run. They do not rewind
+writes or pause the TCP stream. Pause controls the next dispatch; an in-flight
+write may complete. Current network/profile data stays current during history review.
+
+Fault percentages are configured exposure probabilities, distinct from assigned
+intent counts and observed failures. Both independent proxy lanes share one profile;
+the common black box does not claim one physical connection or packet visibility.

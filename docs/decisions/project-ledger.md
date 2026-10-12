@@ -62,7 +62,7 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | D47 | Give the main UI to task nodes and communication; move detailed metrics/settings below. |
 | D48 | Represent the network as an uncertainty black box with outward commands and returning results. Do not claim visibility into individual encrypted packets. |
 | D49 | Keep full current-run trace, with compact text/symbols for distinct states. Build HTML alternatives before the visual redesign is selected. |
-| D50 | Explain mode uses1–3 intents in a controlled reproducible case; keep policy on/off comparison. Network injection stays at the proxy, observed outcomes stay at the server. |
+| D50 | Earlier Explain design used1–3 intents. The count restriction is superseded by D62. Controlled cases and policy on/off comparison remain useful; network injection stays at the proxy. |
 | D51 | Select the B black-box direction for Compare. This selection does not settle the Explain layout or authorize replacing the live UI before the revised preview is reviewed. |
 | D52 | Put bridge evidence and decisions on the Agent side. Server panels show received requests, writes/replays and response sending; they do not know whether a response reached the bridge. |
 | D53 | Compare uses three-line event windows: prior event, highlighted current event and muted next planned action. Explain prints complete chronological logs. Keep full history below. |
@@ -74,6 +74,10 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | D59 | Owner explicitly requested and authorized two independent Agent/MCP streams. Each owns IDs, queues and results. Common controls broadcast actions without synchronizing progress. This replaces the shared Agent topology in D42. |
 | D60 | Default live faults are drawn independently under the same profile. Retain optional paired per-task scenarios for controlled benchmark comparison; paired mode never pools responses or enforces lockstep. |
 | D61 | Keep one network black box. Show actual active conditions inside, grouped only when equal. Remove repeated no-toxic text and the TCP/TLS subtitle. History controls advance each lane independently. |
+| D62 | Compare and Explain are views of the same real run and configuration. Both accept1..100 tasks; changing views never changes the network profile. Larger task tiles apply only to small runs. |
+| D63 | Task nodes need clear projection contrast: solid purple for issued, solid green for recorded, red with a repeat symbol for duplicates, and pale dashed placeholders. |
+| D64 | The network box retains two lane slots and fixed geometry in normal/fault states. Change text and green/red state without adding/removing panels. This supersedes D61's grouping of equal active conditions. |
+| D65 | Keep both the probability slider and a keyboard number input, synchronized within0..100. Preserve the lab's special100% full-disconnect control. |
 
 ## Open work
 
@@ -101,8 +105,22 @@ Keep transport, fault injection, observation and UI outside the recovery algorit
 | R41 | Live UI now displays real three-line event windows and full Explain logs, with historical steps. A 100-intent mixed run confirmed both streams: 110 baseline rows / 100 reliable rows, 10 / 0 extra effects. |
 | R40 | Owner approved live implementation under D57. B layout is live with endpoint logs, common network box and open full trace. Maintainer runtime smoke passed; final Owner demo acceptance remains pending. |
 | R42 | Audit found separate MCP clients/processes and scoped replies already existed; shared emission and paired fault plans could explain identical counters/logs. D59–D61 implemented. New isolation, broadcast pause/rate changes and both UI views passed maintainer checks. Owner acceptance remains pending. |
+| R43 | Owner reported the inconsistent three-task cap and accepted shared data across live views. D62 implemented and checked:100 tasks started from Explain and confirmed in each lane. Owner acceptance pending. |
+| R44 | Owner requested a presentation simulation with genuine step control, visible server truth/bridge evidence and ON/OFF paths for uncertain journeys. [Design proposal](../presentation-journey.md) and two standalone previews prepared; live tab implementation and layout choice remain open. No quiz or hidden truth. |
+| R45 | Owner requested stronger task-node contrast. D63 implemented; all four text/background pairs exceed4.5:1. Desktop maintainer smoke passed; projection acceptance is still Owner review. |
+| R46 | Owner requested a fixed network frame with persistent lane states. D64 implemented; healthy/disconnected states kept identical190×266px geometry in the checked viewport. |
+| R47 | Owner requested a numeric probability field beside the slider. D65 implemented; keyboard43% reached the backend,101% was rejected by the form. Restore and tab navigation checked. |
 
 ## Current evidence
+
+The 2026-10-12 UI-only update passed four maintainer groups: shared live-view
+configuration, numeric probability controls, stable network layout, and task-node
+contrast/layout. A no-fault100-task control started from Explain confirmed100
+operations per lane with100 server rows each. This control verifies the UI count
+path; it is not a fault-recovery benchmark. See [verification](../verification.md).
+
+The proposed presentation simulation remains separate from those live receipts.
+Its two previews are teaching fixtures, not measured network execution.
 
 Five policy checks, six MCP/HTTPS/PostgreSQL cases and three Agent checks passed
 after the independent-lane change. One lane completed three writes while the

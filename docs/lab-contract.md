@@ -74,3 +74,13 @@ Common Start/Pause/Resume/Stop controls broadcast the action to both Agents and
 bridges. Each history step moves one recorded event on each lane independently;
 clicking a trace event selects only its lane. Historical snapshots never drive
 the recovery algorithm. The network box always describes current proxy conditions.
+
+Compare and Explain use the same run/configuration and accept1..100 intents.
+Switching views does not clamp the task count or replace a mixed network profile.
+Only small Explain runs use larger task tiles. Both network-lane status slots stay
+present in normal and adverse states. The probability slider and numeric input
+share one0..100 value;100 retains its explicit full-disconnect meaning.
+
+The proposed presentation Journey is a separate deterministic simulation. Its
+previous/next controls would move model state, unlike the live history controls.
+See [the proposal](presentation-journey.md); it is not connected as a live tab yet.

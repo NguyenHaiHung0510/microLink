@@ -12,15 +12,15 @@
     <div class="actions"><button id="fullscreen">Toàn màn hình</button><span id="runState" class="badge">Sẵn sàng</span></div>
   </header>
   <section class="toolbar" aria-label="Điều khiển lượt chạy">
-    <div class="actions"><button id="start" class="primary">Chạy lượt mới</button><button id="pause">Tạm dừng</button><button id="resume">Tiếp tục</button><button id="stop">Dừng</button></div>
+    <div class="actions"><button id="start" class="primary" disabled>Chạy lượt mới</button><button id="pause" disabled>Tạm dừng</button><button id="resume" disabled>Tiếp tục</button><button id="stop" disabled>Dừng</button></div>
     <label class="pace">Agent <input id="pace" type="number" min="0" max="10" step="0.1" value="1"> giây/task</label>
-    <div class="quick-network"><label for="prob">Bất lợi</label><input id="prob" type="range" min="0" max="100" value="30"><strong id="probLabel">30%</strong></div>
+    <div class="quick-network"><label for="prob">Bất lợi</label><input id="prob" type="range" min="0" max="100" value="30"><label class="percent-input"><input id="probNumber" type="number" min="0" max="100" step="1" value="30" aria-label="Tỷ lệ bất lợi (%)"><span>%</span></label></div>
     <div class="actions"><button id="offline">Đứt mạng</button><button id="restore">Khôi phục</button></div>
   </section>
   <section class="history-bar" aria-label="Xem các bước đã quan sát">
     <div class="actions"><button id="firstStep">Về bước đầu</button><button id="prevStep">← Bước trước</button><button id="nextStep">Bước tiếp →</button><button id="liveView">Về hiện tại</button></div>
     <span id="historyLabel">Quan sát trực tiếp</span>
-    <label id="presetLabel" hidden>Tình huống <select id="preset"><option value="normal">Bình thường</option><option value="request">Mất yêu cầu</option><option value="response">Mất phản hồi sau khi ghi</option><option value="latency">Phản hồi chậm quá hạn</option><option value="outage">Đứt mạng</option></select></label>
+    <label id="presetLabel" hidden>Tình huống <select id="preset"><option value="current">Hồ sơ hiện tại</option><option value="normal">Bình thường</option><option value="request">Mất yêu cầu</option><option value="response">Mất phản hồi sau khi ghi</option><option value="latency">Phản hồi chậm quá hạn</option><option value="outage">Đứt mạng</option></select></label>
   </section>
   <p id="message" class="message" role="status" aria-atomic="true">Agent giả lập gọi MCP thật. Log và dữ liệu ghi được lấy từ lượt chạy thật.</p>
 
@@ -40,7 +40,7 @@
       </article>
     </section>
     <aside class="network-panel">
-      <div class="blackbox"><strong>Đường bất định</strong><p id="networkNow">Mạng hiện tại</p><div id="activeFaults"></div></div>
+      <div class="blackbox" data-condition="healthy"><strong>Đường bất định</strong><p id="networkNow">Đang đọc trạng thái</p><div id="activeFaults"><div id="fault-baseline" class="fault-state"><b>Luồng 1 · Tắt</b><span>Đang đọc trạng thái</span></div><div id="fault-reliable" class="fault-state"><b>Luồng 2 · Bật</b><span>Đang đọc trạng thái</span></div></div></div>
       <h3>Quan sát tại hai đầu</h3>
       <table class="endpoint-metrics"><thead><tr><th></th><th>Tắt</th><th>Bật</th></tr></thead><tbody><tr><th>Lượt thử gửi →</th><td id="baselineSends">0</td><td id="reliableSends">0</td></tr><tr><th>← Xác nhận tới MCP</th><td id="baselineReceipts">0</td><td id="reliableReceipts">0</td></tr></tbody></table>
     </aside>
@@ -75,7 +75,7 @@
         <label class="check"><input id="parent" type="checkbox"> Task cha → checklist</label>
       </div>
       <h3>Trọng số trong các ý định gặp bất lợi</h3><div id="weights" class="weights"></div>
-      <button id="apply" class="primary">Áp dụng cấu hình</button>
+      <button id="apply" class="primary" disabled>Áp dụng cấu hình</button>
       <p class="note">5 lần gửi gồm lần đầu và tối đa 4 lần thử lại. Số task và giới hạn gửi áp dụng từ lượt mới; tốc độ và mạng chỉnh được khi chạy. Tối đa 100 ý định, 20 phút/lượt.</p>
       <p class="note">Các nút chung điều khiển cả hai luồng, không đồng bộ tiến độ. Tạm dừng chặn lần gửi tiếp, không hủy request đang bay. Dừng không hoàn tác ghi. Bước trước/sau xem lại bằng chứng đã ghi nhận.</p>
     </article>

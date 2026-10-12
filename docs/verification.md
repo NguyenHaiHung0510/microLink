@@ -143,3 +143,45 @@ The source manifest and first batch receipt are in
 Later client-log/layout-only changes were rechecked in the browser; they do not
 change the recovery policy or invalidate the backend batch. This is maintainer
 evidence. Independent review, production acceptance and a broad benchmark remain open.
+
+## Shared live views and stable network frame — 2026-10-12
+
+Four UI maintainer groups passed4/4 (100%): switching live views preserves the
+task count/network profile; keyboard percentage input and validation; stable
+healthy/disconnected network geometry; task contrast and desktop layout.
+No recovery-policy or backend source changed in this update.
+
+Run f9b5df62-e0a6-442d-8731-f82c406c8db2 started from Explain with100 tasks,
+no faults and0.1s Agent cadence. Both independent lanes issued/confirmed100/100
+and each server recorded100 rows. This control checks the count/start path; it
+does not measure fault recovery. The four Compare panels each showed100 nodes,
+ended at694px in a720px-high viewport and had no horizontal overflow.
+
+Healthy and full-disconnect states kept the network box at190×266px, with both
+76px lane slots present. The actual proxy offline flag was checked. Keyboard43%
+reached the controller;101% displayed form validation. Task text/background
+contrast ratios were8.22,7.25,6.48 and5.16 for issued/written/duplicate/waiting.
+JavaScript syntax and diff-whitespace checks passed.
+
+Private raw receipts are under `.runtime/shared-views-20261012/`, including the
+source freeze, control state, batch receipt and screenshots. An initial in-app
+automation fill did not dispatch change; normal typing/blur then passed. An
+interrupted check stopped the owned lab; startup and state were checked before
+continuing. The completed control and earlier interrupted run remain archived.
+
+These are maintainer checks. Independent QA, projection/device acceptance and a
+new fault benchmark were not run for this UI-only update. The separate Journey
+previews are deterministic fixtures, not part of these network measurements.
+
+The Journey layout smoke showed UNKNOWN with one row on each server; after
+recovery, off had two rows and on retained one. Playback stopped at the final
+frame; previous stepped back. Normal and blocked-request stories each confirmed
+one row per lane. The flow and sequence panels ended at706px and712.6px in the
+checked720px viewport, without horizontal overflow or console errors. This is
+preview verification of three fixtures, not the proposed full case catalog.
+
+After the live batch, active-condition labels were formatted as two short lines
+inside their reserved slots. Syntax was rechecked; the count, probability and
+healthy/disconnected geometry evidence above remains applicable. Long-label
+projection acceptance remains open. The final source manifest preserves this
+display-only difference from the initial freeze.

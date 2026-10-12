@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hành trình · miAssura</title><link rel="stylesheet" href="preview.css">
+<body><main>
+<header><div><h1>microLink / miAssura</h1><p>Reliability Through Uncertainty</p></div><nav aria-label="Chọn bố cục"><a id="flowLink" href="?layout=flow">A · Đi–về</a><a id="sequenceLink" href="?layout=sequence">B · Sequence</a></nav><span class="tag">Preview · mô phỏng</span></header>
+<section class="controls"><label>Tình huống <select id="scenario"><option value="response">Mất phản hồi sau khi ghi</option><option value="request">Yêu cầu không tới server</option><option value="normal">Bình thường</option></select></label><div><button id="reset">Về đầu</button><button id="prev">← Bước trước</button><button id="next" class="primary">Bước tiếp →</button><button id="play">Chạy</button><button id="pause">Tạm dừng</button></div><label>Nhịp bước <select id="speed"><option value="1000">1 giây</option><option value="2000">2 giây</option><option value="500">0,5 giây</option></select></label></section>
+<section class="narration" aria-live="polite"><span id="position"></span><h2 id="headline"></h2><p id="explanation"></p></section>
+<section id="board" class="board" aria-label="Hai luồng minh họa độc lập"></section>
+<section class="evidence"><h2>Diễn tiến đã mô phỏng</h2><div id="logs" class="logs"></div></section>
+<p class="note">Thời gian và sự kiện được định trước để trình bày. Không phải trace MCP thật hoặc số liệu benchmark. Bước trước chỉ quay lại mô hình; không hoàn tác dữ liệu lab.</p>
+</main><script src="preview.js"></script></body></html>

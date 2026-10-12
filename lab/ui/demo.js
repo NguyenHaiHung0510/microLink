@@ -65,8 +65,12 @@ $('apply').onclick = apply;
 $('pause').onclick = () => act('/action/pause', null, 'Tạm dừng lần gửi tiếp. Request đang bay vẫn có thể hoàn tất.');
 $('resume').onclick = () => act('/action/run', null, 'Tiếp tục lượt chạy và xem dữ liệu hiện tại.');
 $('stop').onclick = () => act('/action/stop', null, 'Đã yêu cầu dừng. Ghi đã xảy ra không bị hoàn tác.');
-$('prob').oninput = () => { $('probLabel').textContent = $('prob').value + '%'; };
+$('prob').oninput = () => { $('probNumber').value = $('prob').value; };
 $('prob').onchange = apply;
+$('probNumber').oninput = () => {
+  if ($('probNumber').value !== '' && $('probNumber').checkValidity()) $('prob').value = $('probNumber').value;
+};
+$('probNumber').onchange = apply;
 $('pace').onchange = apply;
 for (const [id, value] of [['offline', 100], ['restore', 0]]) $(id).onclick = () => {
   $('prob').value = value; $('prob').oninput();
@@ -76,6 +80,7 @@ for (const [id, value] of [['offline', 100], ['restore', 0]]) $(id).onclick = ()
 };
 $('preset').onchange = () => {
   const selected = $('preset').value;
+  if (selected === 'current') return;
   $('force').value = selected === 'outage' ? 'normal' : selected;
   $('prob').value = selected === 'outage' ? 100 : 0;
   $('duration').value = 4;
@@ -230,27 +235,26 @@ function profile(config, network) {
 function paintNetwork(network) {
   const active = network?.active || {};
   const description = fault => {
-    const direction = fault.direction === 'upstream' ? '→ Lệnh đi' : '← Kết quả về';
-    const detail = fault.scenario === 'latency' ? ` · ${fault.attributes.latency} ms` : fault.scenario === 'bandwidth' ? ` · ${fault.attributes.rate} KB/s` : '';
-    return `${names[fault.scenario]} · ${direction}${detail}`;
+    const direction = fault.direction === 'upstream' ? '→ Lệnh' : '← Kết quả';
+    const transport = fault.scenario === 'latency' ? `← ${fault.attributes.latency} ms` : fault.scenario === 'bandwidth' ? `← ${fault.attributes.rate} KB/s` : direction;
+    return `${names[fault.scenario]}\n${transport}`;
   };
-  $('activeFaults').replaceChildren();
-  if (network?.offline) { $('networkNow').textContent = 'Đứt mạng · cả hai luồng'; return; }
-  const affected = lanes.filter(lane => active[lane]);
-  if (!affected.length) { $('networkNow').textContent = 'Không có sự cố đang áp dụng'; return; }
-  $('networkNow').textContent = 'Sự cố đang áp dụng';
-  const equal = affected.length === 2 && description(active.baseline) === description(active.reliable);
-  for (const lane of equal ? ['baseline'] : affected) {
-    const row = node('div', '', 'fault-state');
-    row.append(node('b', equal ? 'Cả hai luồng' : lane === 'baseline' ? 'Luồng 1 · Tắt' : 'Luồng 2 · Bật'), node('span', description(active[lane])));
-    $('activeFaults').append(row);
+  const adverse = network?.offline || lanes.some(lane => active[lane]);
+  $('activeFaults').parentElement.dataset.condition = adverse ? 'adverse' : 'healthy';
+  $('networkNow').textContent = network?.offline ? 'Đứt mạng · cả hai luồng' : adverse ? 'Sự cố đang áp dụng' : 'Không can thiệp';
+  for (const lane of lanes) {
+    const row = $('fault-' + lane), fault = active[lane];
+    row.dataset.condition = network?.offline || fault ? 'adverse' : 'healthy';
+    row.querySelector('span').textContent = network?.offline ? '× Ngắt hai chiều' : fault ? description(fault) : '✓ Không can thiệp';
   }
 }
 function paint() {
   if (!snapshot) return;
   const s = snapshot, active = ['running', 'paused', 'stopping'].includes(s.status);
+  document.body.dataset.smallCase = lanes.every(lane => (s.agents[lane].target || s.config.count) <= 3);
   $('runState').textContent = statuses[s.status] || s.status;
   $('start').disabled = active || busy; $('pause').disabled = s.status !== 'running'; $('resume').disabled = s.status !== 'paused'; $('stop').disabled = !active || s.status === 'stopping';
+  $('apply').disabled = busy;
   for (const id of ['count', 'attempts', 'persistent', 'parent', 'seed', 'preset', 'paired']) $(id).disabled = active;
   for (const lane of lanes) {
     const cursor = cursors[lane];
@@ -299,10 +303,8 @@ function hydrate(config) {
   $('persistent').checked = config.persistent; $('parent').checked = config.parent_case; $('paired').checked = config.paired_faults;
   for (const key of Object.keys(defaults)) $('weight-' + key).value = config.weights[key];
   if (focus) {
-    $('count').max = '3'; $('count').value = Math.min(3, config.count);
-    const preset = config.probability === 100 ? 'outage' : ['normal', 'request', 'response', 'latency'].includes(config.force) ? config.force : 'normal';
+    const preset = config.probability === 100 ? 'outage' : ['normal', 'request', 'response', 'latency'].includes(config.force) ? config.force : 'current';
     $('preset').value = preset;
-    if (config.force === 'mixed') { $('force').value = 'normal'; $('prob').value = 0; }
   }
   $('prob').oninput(); hydrated = true;
 }

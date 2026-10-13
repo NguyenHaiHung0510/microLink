@@ -2,6 +2,14 @@
 
 Mục tiêu: nhìn vào code và tự giải thích được tại sao gửi lại không làm sai ý định.
 
+miAssura gồm chính sách bridge và hợp đồng/cài đặt API. recovery.py là vòng lặp
+phục hồi, không tự chống ghi trùng. Cùng mã retry được chạy riêng trong mỗi tiến
+trình bridge; hai luồng không dùng chung attempts, connection hoặc response.
+
+Owner chọn A: OFF vẫn mang ID để lab nối log, nhưng API OFF không dùng nó để
+khử tác dụng lặp. ON giữ ID/payload và API thực thi unique/replay. ID hiện do host
+cấp; không phải khả năng mặc định của MCP hoặc bridge tự sinh trong implementation.
+
 ## Bốn phần cần học
 
 1. **Định danh:** một ý định tạo task có một intent ID. Tạo hai task cùng tên là
@@ -10,7 +18,7 @@ Mục tiêu: nhìn vào code và tự giải thích được tại sao gửi l�
    trước khi xác nhận. Timeout/reset/JSON thiếu không chứng minh chưa ghi: giữ unknown.
 3. **Retry:** vòng lặp trong recovery.py chỉ gọi lại cùng send_once. Adapter đóng
    trên snapshot ID/payload. API unique ID + matching payload mới làm điều này an toàn.
-4. **Phụ thuộc:** chưa xác nhận n thì chưa gửi n+1 trong một ordered stream. Tạo
+4. **Phụ thuộc:** host chưa xác nhận n thì chưa gửi n+1 trong một ordered stream. Tạo
    cha rồi tạo checklist là một nhu cầu thực tế; tất cả lệnh trên mọi stream không
    cần bị khóa tuần tự toàn hệ thống.
 
@@ -25,7 +33,25 @@ Mục tiêu: nhìn vào code và tự giải thích được tại sao gửi l�
 
 Nếu request cha chưa tới thì server chưa biết gì. Khi retry cha tới, server mới
 tạo A. Request con không tự yêu cầu server suy đoán hoặc tạo cha; foreign key từ
-chối con mồ côi. Nếu cha vẫn unknown, bridge giữ con chưa gửi.
+chối con mồ côi. Nếu cha vẫn unknown, host chưa gọi tool con. Bridge chỉ phục hồi
+từng call; không tự nhận diện DAG hay nội dung ngôn ngữ tự nhiên của Agent.
+
+## Luồng thông điệp
+
+    Agent → host/MCP client → JSON-RPC UTF-8/newline qua STDIO
+      → microLink (MCP server + HTTPS bridge) → HTTP trong TLS → API → PostgreSQL
+    API trả record sau commit → HTTP client nhận/kiểm receipt
+      → MCP server trả JSON-RPC result → MCP client ghép call ID → host/Agent
+
+Một tool call có thể có nhiều HTTP attempts. JSON-RPC ID ghép call/result;
+intent ID giữ một tác dụng ghi qua retry; resource ID nhận diện row.
+API sent response không chứng minh bridge đã nhận. committed_at là timestamp
+của row, không phải bằng chứng độc lập cho thời điểm commit.
+
+HTTP client đặt connect/read/write/pool timeout3s; read đo thời gian chờ chunk,
+không phải tổng request. recovery.py dừng sớm khi confirmed/rejected, còn unknown
+thì retry trong limit/budget. Budget được xét giữa attempts. Tool result vẫn có
+state=unknown nếu thiếu receipt; isError=false không đồng nghĩa ghi thành công.
 
 ## Đọc code theo thứ tự
 
@@ -50,6 +76,11 @@ Outage có tương quan; permanent outage giữ unknown. Bản đầu dùng cap2
 
 POST replay record là cơ chế phục hồi bằng chứng tối thiểu. Chưa cần journal,
 lease, sequencer server, DAG scheduler, queue bền vững hoặc crash-recovery.
+
+Demo chủ lực: commit mất phản hồi, phản hồi vượt timeout và đứt mạng quá ngân sách.
+Normal/blocked-request có thể cho kết quả giống nhau; đó là đối chứng hợp lệ.
+Bandwidth của receipt nhỏ chủ yếu làm chậm, không bảo đảm tạo timeout.
+Phiên MCP local được giả định khỏe trong Topic; offline outbox và sản phẩm tính sau.
 
 Tham chiếu: [idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/),
 [PostgreSQL constraints](https://www.postgresql.org/docs/18/ddl-constraints.html).

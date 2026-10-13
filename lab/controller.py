@@ -330,7 +330,7 @@ async def lane_run(lane, run_id, config, released, started):
                     break
                 # Clear only the owned lane for TLS warm-up. No write uses this setup path.
                 if not faults.offline:
-                    await faults.clear(lane)
+                    await faults.clear(lane, reason='prepare_next_case')
                     result = await client.call_tool("warmup")
                     info["warmup"] = result.structured_content
                 episode = plan(lane, seq)
@@ -372,7 +372,7 @@ async def lane_run(lane, run_id, config, released, started):
         info["error"] = f"{type(error).__name__}: {error}"
     finally:
         stderr.close()
-        await faults.clear(lane)
+        await faults.clear(lane, reason='case_finished')
 
 
 async def run(config):

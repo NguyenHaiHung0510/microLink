@@ -1,65 +1,75 @@
-# Presentation journey — proposed
+# Presentation journey
 
-Keep **Compare** for the real streams and **Explain** for their full logs.
-Both display the same run with1..100 tasks. Add one **Journey / Hành trình** tab
-for a deterministic presentation simulation, independent of the live controller.
+**Compare** and **Explain** display the same real run with 1..100 tasks.
+**Journey** is a separate presentation simulation at `/ui/journey.html`.
+It makes no network calls or database writes and yields no benchmark numbers.
 
-## Layout choices
+The selected outward/return layout places bridge knowledge on the Agent side,
+server truth opposite, and a shared uncertainty box between the two policy paths.
+The earlier flow/sequence previews remain in `lab/ui/prototypes/journey/`.
 
-- **A — Outward command and returning result:** two client/server pairs around a
-  common uncertainty box. Put bridge evidence on the client side and server truth
-  on the server side. Recommended for the class presentation.
-- **B — Sequence:** lifelines and chronological messages, with the same two policy
-  paths. Better for discussing protocol order; more technical text on screen.
+## Stories
 
-Standalone previews: `lab/ui/prototypes/journey/index.html`. They cover normal,
-blocked request and lost response. Neither layout is selected for the live tab yet.
-
-## Proposed case selector
-
-| Case | What the audience sees |
+| Story | Main point |
 |---|---|
-| Normal | STDIO tool call, HTTPS request, API receive, commit, matching receipt, tool result. |
-| Request blocked | Server receives no complete command in this selected story; bridge times out and cannot infer that fact from timeout alone. |
-| Response lost after commit | Server has a row while bridge is UNKNOWN. Retry creates another effect off; on replays the same record. |
-| Delay | A result arriving before the deadline versus no usable receipt by the deadline. Show what happens to a late response separately from a later retry. |
-| Connection interrupted | Choose before complete API receipt versus after commit. The same transport error can have different write outcomes. |
-| Incomplete response / slow transfer | Server may have committed; a partial or invalid response is not sufficient confirmation. |
-| Outage exceeds budget | Attempts stop with UNKNOWN. The simulation does not promise completion without recovery. |
-| Parent then checklist | A dependent write stays unsent until the parent's matching receipt is confirmed. |
+| Normal | API receipt, commit, response send, bridge validation, tool result are separate steps. |
+| Request blocked | This story delivers no complete request. Timeout alone cannot tell the bridge that. |
+| Response lost | Server has committed while bridge is UNKNOWN. Ordinary create retry duplicates; the on API replays. |
+| Delay | Select before or after a 3-second deadline. A late reply to a closed request is not a receipt for a later attempt. |
+| Connection interrupted | Select before complete API receipt or after commit. Similar transport errors can hide different outcomes. |
+| Incomplete response | A committed write with a partial/unusable receipt remains unknown to the bridge. |
+| Outage exceeds budget | Select 1..5 total sends. The result stays UNKNOWN without connectivity. |
+| Parent then checklist | The child stays unsent until the parent has a matching receipt; each lane uses its own parent record ID. |
 
-These cover distinct outcomes in this write contract, not every possible network
-fault combination. Duplication is an outcome of retry/API semantics, not a toxic.
-A delayed commit can be an additional story with explicit server-processing
-assumptions; do not claim the current proxy can reproduce every timing relation.
-ID/payload conflict is an optional contract guard, not a network failure.
+These are eight groups with ten timing branches, not every network fault.
+Duplication is a retry/API outcome, not a toxic. Stories model explicit outcomes;
+they do not claim that Toxiproxy always produces that exact timing.
 
-## Step controls and evidence
+## Controls and assumptions
 
-Use previous/next, play/pause/resume, reset and an adjustable simulated step pace.
-Each step changes the model itself; previous restores an earlier model snapshot.
-It never undoes real database writes or freezes TCP traffic.
+Previous/next rebuild the selected model snapshot. Reset returns to the first
+Agent call. Play/pause/resume uses one bounded presentation clock and stops at the
+last frame. Changing stories stops playback; hiding the page pauses it.
+Presentation pace is independent of the displayed simulated time/deadline.
+Chronological logs remain open below the board, without a last-N cap or quiz.
 
-Always show both ON/OFF lanes with separate identities and records. Display:
-logical intent ID, HTTP attempt, command/result direction, server rows, bridge
-knowledge and the policy's next action. Keep a visible simulated clock/deadline.
-Open chronological logs below; no quiz, hidden truth or last-N cap.
+MCP initialization is assumed complete. The HTTPS adapter closes a timed-out
+request and validates matching intent/payload evidence. Both paths preserve
+UNKNOWN and the parent dependency barrier, matching the live lab. The off API
+uses ordinary create; the on API enforces unique ID, matching payload and replay
+after commit. Keeping an ID at the client is insufficient if the API ignores it.
+Server observations never decide bridge confirmation.
 
-Bridge confirmation must follow modeled receipt delivery and validation. It cannot
-read the server observation pane to decide. The on path requires the API's unique
-ID, matching-payload and replay contract. The current off path also reports UNKNOWN
-on timeout; do not invent a false-failure policy to make the comparison look better.
+No backend, recovery core, dependency, protocol pin or production setting changed.
+Run `node tests/test_journey.cjs` for the model checks. Use the real lab for
+network experiments and measured comparisons.
 
-Label the tab **Mô phỏng**. Use the real lab for experimental numbers. Grouping all
-cases in one selector keeps the navigation small; separate Journey/Recovery/
-Dependencies tabs are an alternative if the presentation needs larger dedicated
-views. The additional navigation and repeated controls are the trade-off.
 
-## Implementation proposal
+## Presentation size
 
-Implement the selected layout in the existing HTML/CSS/JS UI.
-No new dependency, backend, core-policy, production or MCP configuration change is
-needed. Reuse the existing palette, typography and controls. Check phase order,
-UNKNOWN before valid evidence, ON replay/no extra effect, step reversal and
-bounded playback before connecting the new navigation tab. Full case coverage is
-part of that implementation; the current previews only establish the layout.
+The primary target is 1920x1080. Wide desktop views use nearly the whole width,
+28px current states, 36px records and a 320x576px route box. The main journey
+stays above its complete logs. Smaller panels keep the responsive layout.
+Compare uses numbered nodes and three-line state windows. Explain places full
+chronological Agent/Bridge and API logs below their respective nodes for every
+workload size, including100 tasks. Its page grows vertically; the full source
+trace remains below. Both views read the same real run.
+
+
+## Message and payload walkthrough
+
+Owner-approved B04 is below the main board and above the full logs. Its
+outward/return and sequence views follow the same selected Journey step; there
+is no second presentation clock. Nearby previous/next/play/pause controls mirror
+the main controls so the walkthrough remains usable while scrolled down.
+
+The highlighted station shows Agent, MCP client, bridge, network, API or database.
+Select either policy to read its MCP call/result, HTTP request/response and bridge
+evidence. API response sending and bridge receipt validation are different steps;
+the response can be visible while bridge evidence is still missing. MCP client
+delivery is shown before Agent delivery. Outage returns UNKNOWN through MCP.
+
+Metadata is omitted by default for readability, including the OFF lab tracking ID.
+The wire toggle reveals the simplified lab fields; the real implementation still
+carries them under alternative A. Specimens use short IDs, omit routine headers,
+and do not claim to be packet captures. Host manages parent/checklist dependency.

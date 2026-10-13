@@ -35,6 +35,10 @@ Previous/next inspect recorded events; they do not undo writes. The full trace a
 configured fault distribution are shown below the main view. Shared controls
 broadcast actions; they do not synchronize progress or combine responses.
 
+Use **Journey** for a separate step-by-step presentation simulation. Select a
+failure story, move forward/back, or play/pause. It makes no network calls and
+produces no benchmark numbers.
+
 Faults are drawn independently under one profile by default. Enable **paired
 fault scenarios** for repeatable comparisons of the same numbered workload.
 Even in paired mode, the lanes execute independently.

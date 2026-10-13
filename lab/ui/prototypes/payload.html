@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>miAssura · Hành trình payload — prototype</title>
+<style>
+:root{font:18px/1.45 "Segoe UI",Arial,sans-serif;color:#202a3c;background:#f5f6fa;--purple:#5343ad;--green:#176247;--red:#a53340;--amber:#895500;--line:#d9dfeb;--muted:#586476}
+*{box-sizing:border-box}body{margin:0}main{max-width:1920px;margin:auto;padding:22px}h1{font-size:30px;margin:0}h2{font-size:23px;margin:0}h3{font-size:20px;margin:0}p{margin:7px 0}.muted{color:var(--muted)}
+header,.controls,.buttons,.heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}header{margin-bottom:18px}.badge{background:#e9edf4;padding:6px 10px;border-radius:6px;font-size:16px}.controls,.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:14px}.controls{margin-bottom:14px}.buttons{justify-content:flex-start;gap:8px}
+button,select{font:inherit;padding:8px 14px;min-height:44px;border:1px solid #b7c1d1;border-radius:7px;background:white;color:inherit;cursor:pointer}button.primary,button[aria-pressed=true]{background:var(--purple);color:white;border-color:var(--purple)}button:disabled{opacity:.45;cursor:default}label{display:flex;gap:8px;align-items:center}input{accent-color:var(--purple)}:focus-visible{outline:3px solid #976000;outline-offset:3px}[hidden]{display:none!important}
+.narration{border-left:5px solid var(--purple);padding:10px 18px;margin:12px 0 18px;background:#ece8fc}.narration h2{font-size:28px}.position{font-size:22px;font-weight:700;white-space:nowrap}.lanes{display:grid;gap:14px}.lane{padding:14px;border:1px solid var(--line);border-top:4px solid var(--amber);border-radius:10px;background:white}.lane.on{border-top-color:var(--green)}.heading{margin-bottom:10px}.heading p{margin:0}.policy{font-weight:700;color:var(--amber)}.on .policy{color:var(--green)}.state{font-weight:700;font-size:23px}.state.unknown{color:var(--amber)}.state.confirmed{color:var(--green)}
+.route{display:grid;grid-template-columns:1fr 35px 1fr 35px 1.25fr 35px 1fr 35px 1.1fr 35px .85fr;align-items:stretch;gap:4px}.station{border:2px solid var(--line);border-radius:8px;min-height:112px;padding:10px;display:flex;flex-direction:column;justify-content:center;position:relative}.station small{color:var(--muted);font-size:16px}.station.active{border:3px solid var(--purple);background:#ece8fc}.station.active:before{content:"ĐANG XỬ LÝ";color:var(--purple);font-size:12px;font-weight:800;position:absolute;top:-10px;background:#ece8fc;padding:0 5px}.station.done{border-color:#aacdbb;background:#f0f8f3}.station.network{background:#202a3c;color:white;border-color:#202a3c}.station.network small{color:#f5f6fa}.station.network.adverse{background:#8e2634;border-color:#8e2634}.station.network.active{outline:3px solid #b4a9f4;outline-offset:2px}.arrow{display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--purple)}.arrow.return{color:var(--green)}
+.phase-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;font-size:17px}.effect{font-weight:700}.extra{color:var(--red)}.detail{margin-top:16px}.payload-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.payloads{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.payloads .panel{min-width:0}.payloads h3{margin-bottom:8px}.payloads p{font-size:16px}pre{font:16px/1.4 Consolas,monospace;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#18243a}.payload-note{font-size:16px;color:var(--muted);margin-top:10px}.sequence{background:white;border:1px solid var(--line);border-radius:10px;padding:14px}.sequence-head,.sequence-row{display:grid;grid-template-columns:58px 1.3fr 1.3fr 1fr 1fr 1.4fr;gap:12px;padding:10px}.sequence-head{font-weight:700;background:#ece8fc}.sequence-row{border-bottom:1px solid var(--line);opacity:.4}.sequence-row.past{opacity:1}.sequence-row.active{opacity:1;background:#ece8fc;border-left:4px solid var(--purple)}.sequence-row .trip{font-weight:600}.foot{font-size:16px;margin:14px 0}.protocol{font-size:16px}.trace{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.trace ol{padding-left:28px;font-size:17px}.trace li{padding:5px}.trace li.current{background:#ece8fc;font-weight:600}
+@media(max-width:1200px){main{padding:12px}.route{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.arrow{display:none}.station{min-height:100px}.payloads{grid-template-columns:1fr}.sequence-head,.sequence-row{grid-template-columns:35px 1fr 1fr 1fr 1fr 1fr}.controls{align-items:flex-start}h1{font-size:24px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+@media(min-width:1600px){main{padding:14px 22px}header{margin-bottom:10px}header p{margin:3px 0}.controls{padding:8px 12px;margin-bottom:8px}.narration{padding:8px 14px;margin:8px 0 12px}.narration p{margin:4px 0}.lane{padding:10px 12px}.heading{margin-bottom:8px}.station{min-height:94px;padding:8px}.phase-footer{margin-top:7px}.lanes{gap:10px}.detail{margin-top:12px}.payload-controls{margin-bottom:8px}.payloads .panel{padding:12px}pre{font-size:17px;line-height:1.35}}
+</style>
+</head>
+<body><main>
+<header><div><h1>microLink / miAssura</h1><p class="muted">Reliability Through Uncertainty · Hành trình của một thao tác</p></div><span class="badge">Prototype · mô phỏng để trình bày</span></header>
+<section class="controls" aria-label="Điều khiển prototype">
+ <label>Tình huống <select id="story"><option value="response">Ghi xong, mất phản hồi</option><option value="normal">Bình thường</option><option value="request">Yêu cầu không tới API</option><option value="late">Phản hồi quá hạn</option></select></label>
+ <div class="buttons"><button id="flowButton" aria-pressed="true">Đường đi–về</button><button id="sequenceButton" aria-pressed="false">Sequence</button></div>
+ <div class="buttons"><button id="reset">Về đầu</button><button id="prev">← Bước trước</button><button id="next" class="primary">Bước tiếp →</button><button id="play">Chạy</button><button id="pause" disabled>Tạm dừng</button><button id="fullscreen">Toàn màn hình</button></div>
+</section>
+<section class="narration" aria-live="polite"><div class="heading"><h2 id="headline"></h2><span id="position" class="position"></span></div><p id="explanation"></p></section>
+<section id="flow" class="lanes" aria-label="Hai hành trình đi và về"></section>
+<section id="sequence" class="sequence" hidden aria-label="Diễn tiến theo thành phần"></section>
+<section class="detail" aria-label="Payload ở chặng đang chọn">
+ <div class="payload-controls"><h2>Payload chính</h2><div class="buttons"><label>Luồng <select id="lane"><option value="off">miAssura tắt</option><option value="on" selected>miAssura bật</option></select></label><label><input id="metadata" type="checkbox"> Metadata lab / wire</label></div></div>
+ <div class="payloads"><article class="panel"><h3>① MCP client ↔ microLink</h3><pre id="rpc"></pre></article><article class="panel"><h3>② Bridge ↔ API · HTTP trong TLS</h3><pre id="http"></pre></article><article class="panel"><h3>③ Receipt / kết quả</h3><pre id="receipt"></pre></article></div>
+ <p id="payloadNote" class="payload-note"></p>
+</section>
+<p class="foot">MCP server và HTTPS bridge là hai vai trò trong cùng tiến trình microLink. Các mũi tên biểu diễn thông điệp; black box không đọc nội dung TLS. Dữ liệu dưới đây là vật mẫu, không phải packet capture hay số liệu benchmark.</p>
+<section class="trace" id="logs" aria-label="Diễn tiến đầy đủ"></section>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const stations=['Agent','MCP client','microLink','Đường bất định','API server','PostgreSQL'];
+const roles=['Chọn tool + tham số','JSON-RPC qua STDIO','MCP server + HTTPS bridge','Lệnh đi / kết quả về','Kiểm khóa và payload','Unique key + transaction'];
+let frames=[], index=0, playing=false, timer=null, view='flow';
+function build(story){
+ const f=[],add=(kind,title,text,stage,attempt=1)=>f.push({kind,title,text,stage,attempt});
+ add('agent','Agent muốn tạo Task 1','Host nhận lời gọi create_task. OFF có mã theo dõi lab; ON dùng ID làm khóa phục hồi.',0);
+ add('rpc','MCP client gửi tools/call qua STDIO','JSON-RPC ID = 4 ghép tool call với kết quả. Đây không phải khóa chống ghi lặp ở API.',1);
+ add('prepare','microLink nhận và snapshot thao tác','Cả hai bridge giữ dữ liệu thao tác qua các attempts. ID của OFF chỉ phục vụ observer; API OFF không khử lặp.',2);
+ add('send','Bridge gửi HTTP POST · lần 1','HTTP request được truyền trong TLS. Một tool call MCP có thể chứa nhiều HTTP attempts.',3);
+ if(story==='request')add('blocked','Chiều yêu cầu bị cản','Ca này API chưa nhận request. Bridge chỉ biết chưa có phản hồi, không được đọc observer để kết luận.',3);
+ else{
+  add('receive','API nhận request','Nhận request chưa phải bằng chứng thao tác đã commit.',4);
+  add('commit','Transaction commit','Row đã tồn tại ở server. Bridge vẫn đang chờ receipt.',5);
+  add('response','API gửi response sau commit','201 + record đi ngược về bridge; API gửi không chứng minh bridge đã nhận.',4);
+  if(story==='normal'){
+   add('receipt','Bridge nhận và kiểm receipt','HTTP 2xx, payload/scope khớp; ON còn kiểm row.id bằng intent_id.',2);
+   add('tool','MCP server trả tool result','JSON-RPC response ID = 4 quay về MCP client, rồi host đưa kết quả cho Agent.',1);
+   add('finish','Agent nhận CONFIRMED','Mạng bình thường: cả hai chính sách đều tạo một bản ghi và xác nhận.',0);return f;
+  }
+  add('blocked',story==='late'?'Response bị giữ quá thời hạn':'Chiều phản hồi bị cản','API đã commit nhưng bridge chưa nhận receipt hợp lệ. Chỉ observer biết row đang tồn tại.',3);
+ }
+ add('timeout','Bridge kết thúc attempt 1 với UNKNOWN','Thiếu receipt không đồng nghĩa chưa ghi. Đây là trạng thái nội bộ; tool call MCP vẫn đang chờ vòng phục hồi.',2);
+ if(story==='late')add('late','Response cũ được nhả sau timeout','Request 1 đã kết thúc. HTTP client không ghép response cũ vào request retry; cả OFF/ON đều như vậy.',3);
+ add('retry','Bridge gửi lại · lần 2','OFF: create thông thường. ON: cùng khóa phục hồi và cùng payload. Request mới, cùng tool call MCP.',2,2);
+ add('send','HTTP attempt 2 đi qua mạng đã phục hồi','Việc bridge thử gửi chưa chứng minh API nhận hay ghi.',3,2);
+ add('receive','API nhận attempt 2','API OFF tạo resource mới. API ON dùng unique key để xét create hoặc replay.',4,2);
+ add('commit','Create mới hoặc replay bản ghi cũ',story==='request'?'Lần 1 chưa tới: cả hai API tạo bản ghi đầu tiên.':'OFF tạo thêm một row; ON trả row cũ, không thêm tác dụng ghi.',5,2);
+ add('response','API gửi receipt của attempt 2','OFF trả201; ON trả200 nếu replay, hoặc201 nếu lần này mới tạo.',4,2);
+ add('receipt','Bridge xác nhận từ receipt hợp lệ','Receipt của đúng HTTP attempt được kiểm. Observer server không cấp đáp án cho bridge.',2,2);
+ add('tool','Tool result trở về MCP client','Cùng JSON-RPC ID = 4; attempts = 2. Một lời gọi MCP đã thực hiện hai HTTP attempts.',1,2);
+ add('finish','Agent nhận kết quả',story==='request'?'Cả hai đã ghi một row: retry cơ bản đã đủ cho ca này.':'Cả hai có receipt, nhưng OFF đã ghi thừa. CONFIRMED không tự chứng minh không có bản ghi lặp.',0,2);
+ return f;
+}
+function stateAt(policy){
+ const state={rows:[],status:'not_sent',attempt:0,api:'Chưa nhận',bridge:'Chưa gửi',agent:'Chưa gọi',adverse:false,receipt:null,apiReceipt:null};
+ for(const f of frames.slice(0,index+1)){
+  if(['send','retry'].includes(f.kind))state.attempt=f.attempt;
+  if(f.kind==='agent')state.agent='Gọi create_task';
+  if(['send','retry'].includes(f.kind)){state.bridge='Đang chờ phản hồi';state.status='waiting';state.adverse=false;state.receipt=null;state.apiReceipt=null;}
+  if(f.kind==='receive')state.api='Đã nhận request';
+  if(f.kind==='commit'){
+   if(policy==='off'||!state.rows.length)state.rows.push(policy==='on'?'K2':'ROW-'+f.attempt);
+   state.api=policy==='on'&&f.attempt===2&&$('story').value!=='request'?'Replay · không ghi thêm':'Commit row mới';
+  }
+  if(f.kind==='response'){state.api='Đã gửi response';state.apiReceipt={id:state.rows.at(-1),title:'Task 1',parent_id:null,created:policy==='off'||f.attempt===1||$('story').value==='request'};if(policy==='on')state.apiReceipt.intent_id='K2';}
+  if(f.kind==='blocked')state.adverse=true;
+  if(f.kind==='timeout'){state.bridge='UNKNOWN · thiếu receipt';state.status='unknown';}
+  if(f.kind==='late')state.bridge='UNKNOWN · response cũ không sử dụng';
+  if(f.kind==='receipt'){
+   state.status='confirmed';state.bridge='CONFIRMED · receipt hợp lệ';state.adverse=false;
+   state.receipt={id:state.rows.at(-1),title:'Task 1',parent_id:null,created:policy==='off'||f.attempt===1||$('story').value==='request'};
+   if(policy==='on')state.receipt.intent_id='K2';
+  }
+  if(f.kind==='tool')state.agent='MCP client nhận tool result';
+  if(f.kind==='finish')state.agent='Agent nhận CONFIRMED';
+ }
+ return state;
+}
+function json(value){return JSON.stringify(value,null,2);}
+function paintPayload(f){
+ const policy=$('lane').value,state=stateAt(policy),meta=$('metadata').checked;
+ const operation={title:'Task 1',parent_id:null};
+ if(policy==='on'||meta)operation.intent_id=policy==='on'?'K2':'LAB1';
+ if(meta)Object.assign(operation,{run_id:'RUN',seq:1});
+ const args={operation};if(meta)Object.assign(args,{attempt_limit:5,budget_seconds:1200});
+ const response=['tool','finish'].includes(f.kind);
+ const result={state:state.status,attempts:state.attempt,receipt:state.receipt};
+ const rpc=response?{jsonrpc:'2.0',id:4,result:{resultType:'complete',structuredContent:result,isError:false}}:{jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'create_task',arguments:args}};
+ if(meta&&!response)rpc.params._meta={'io.modelcontextprotocol/protocolVersion':'2026-07-28'};
+ $('rpc').textContent=meta?json(rpc):response?`{"jsonrpc":"2.0", "id":4,\n "result":{"resultType":"complete",\n  "isError":false,\n  "structuredContent":\n${json(result).split('\n').map(line=>'   '+line).join('\n')}\n }\n}`:`{"jsonrpc":"2.0", "id":4,\n "method":"tools/call",\n "params":{"name":"create_task",\n  "arguments":{"operation":\n   ${JSON.stringify(operation)}\n  }}\n}`;
+ const body={...operation};if(meta)body.lane=policy==='on'?'reliable':'baseline';
+ $('http').textContent=state.apiReceipt?`HTTP/1.1 ${state.apiReceipt.created?'201 Created':'200 OK'}\nContent-Type: application/json\n\n${json(state.apiReceipt)}`:`POST /${policy==='on'?'reliable':'baseline'}/tasks HTTP/1.1\nContent-Type: application/json\n\n${json(body)}`;
+ $('receipt').textContent=state.receipt?json(result):state.status==='unknown'?json({state:'unknown',receipt:null,reason:'Không có receipt hợp lệ',note:'Bridge còn retry; chưa trả tool result'}):json({bridge:state.bridge,receipt:null,note:'Chưa có bằng chứng để xác nhận'});
+ $('payloadNote').textContent=(meta?'Wire được rút gọn; RUN/K2/LAB1 thay UUID để dễ đọc.':'Đang lược metadata lab khỏi payload trình chiếu; trường đó vẫn có trong wire thật.')+' OFF: intent_id chỉ nối log, không chống ghi lặp. ON: khóa do host cấp, bridge giữ qua retry, API dùng để replay. JSON-RPC ID luôn độc lập với khóa này.';
+}
+function paint(){
+ const f=frames[index];$('headline').textContent=f.title;$('explanation').textContent=f.text;$('position').textContent=`Bước ${index+1}/${frames.length}`;
+ const returning=['response','receipt','tool','finish','late'].includes(f.kind);
+ $('flow').innerHTML=['off','on'].map(policy=>{
+  const s=stateAt(policy),extra=Math.max(0,s.rows.length-1);
+   return `<article class="lane ${policy}"><div class="heading"><h2 class="policy">miAssura ${policy==='on'?'bật':'tắt'}</h2><span class="state ${s.status}">Bridge: ${esc(s.bridge)}</span></div><div class="route">${stations.map((name,i)=>`${i?`<span class="arrow ${returning?'return':''}" aria-hidden="true">${returning?'←':'→'}</span>`:''}<div class="station ${i===3?'network ':''}${i===f.stage?'active ':''}${i===3&&s.adverse?'adverse':''}"><h3>${name}</h3><small>${policy==='off'&&i===4?'Create thông thường':policy==='off'&&i===5?'Resource ID mới + transaction':roles[i]}</small></div>`).join('')}</div><div class="phase-footer"><span>${esc(s.agent)} · HTTP ${s.attempt?s.attempt:'chưa gửi'}</span><span>API: ${esc(s.api)}</span><span class="effect ${extra?'extra':''}">${s.rows.length} bản ghi · ${extra} ghi thừa</span></div></article>`;
+ }).join('');
+ $('sequence').innerHTML='<div class="sequence-head"><span>Bước</span><span>Chặng / thông điệp</span><span>Agent / MCP client</span><span>Bridge</span><span>API / DB</span><span>Ý nghĩa</span></div>'+frames.map((row,i)=>{
+  const late=['response','receipt','tool','finish','late'].includes(row.kind);
+  return `<div class="sequence-row ${i<index?'past':''} ${i===index?'active':''}"><b>${i+1}</b><span class="trip">${esc(stations[row.stage])} ${late?'←':'→'}<br>${esc(row.title)}</span><span>${['agent','rpc'].includes(row.kind)?'tools/call · ID4':['tool','finish'].includes(row.kind)?'tool result · ID4':'Call ID4 đang chờ'}</span><span>${row.kind==='timeout'?'UNKNOWN':row.kind==='receipt'?'Kiểm receipt':`HTTP attempt ${row.attempt}`}</span><span>${row.kind==='commit'?($('story').value==='request'||row.attempt===1?'Cả hai: create':'OFF: create thêm / ON: replay'):['response','receive'].includes(row.kind)?row.kind:'—'}</span><span>${esc(row.text)}</span></div>`;
+ }).join('');
+ $('flow').hidden=view!=='flow';$('sequence').hidden=view!=='sequence';
+ $('flowButton').setAttribute('aria-pressed',view==='flow');$('sequenceButton').setAttribute('aria-pressed',view==='sequence');
+ paintPayload(f);
+ $('logs').innerHTML=['off','on'].map(policy=>`<article class="panel"><h2>Diễn tiến · miAssura ${policy==='on'?'bật':'tắt'}</h2><ol>${frames.slice(0,index+1).map((r,i)=>`<li class="${i===index?'current':''}">${esc(r.title)}${r.kind==='commit'&&r.attempt===2&&$('story').value!=='request'?(policy==='on'?' · replay':' · tạo thêm row'):''}</li>`).join('')}</ol></article>`).join('');
+ $('prev').disabled=playing||index===0;$('next').disabled=playing||index===frames.length-1;$('play').disabled=playing||index===frames.length-1;$('pause').disabled=!playing;$('play').textContent=index?'Tiếp tục':'Chạy';
+}
+function pause(){clearTimeout(timer);timer=null;playing=false;}
+function load(){pause();frames=build($('story').value);index=0;paint();}
+function tick(){if(!playing)return;timer=setTimeout(()=>{index++;if(index===frames.length-1)pause();paint();if(playing)tick();},1600);}
+$('story').onchange=load;$('lane').onchange=paint;$('metadata').onchange=paint;
+$('flowButton').onclick=()=>{view='flow';paint();};$('sequenceButton').onclick=()=>{view='sequence';paint();};
+$('prev').onclick=()=>{pause();index=Math.max(0,index-1);paint();};$('next').onclick=()=>{pause();index=Math.min(frames.length-1,index+1);paint();};$('reset').onclick=load;
+$('play').onclick=()=>{playing=true;paint();tick();};$('pause').onclick=()=>{pause();paint();};
+$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();paint();}});window.addEventListener('pagehide',pause);load();
+</script></body></html>

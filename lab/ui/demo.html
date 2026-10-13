@@ -8,17 +8,17 @@
 <main>
   <header class="page-head">
     <div><a class="brand" href="/">microLink / miAssura</a><p>Reliability Through Uncertainty</p></div>
-    <nav class="modes" aria-label="Cách trình bày"><a id="compareMode" href="?view=compare">Đối chứng</a><a id="focusMode" href="?view=focus">Giải thích</a></nav>
+    <nav class="modes" aria-label="Cách trình bày"><a id="compareMode" href="?view=compare">Đối chứng</a><a id="focusMode" href="?view=focus">Giải thích</a><a href="/ui/journey.html">Hành trình</a></nav>
     <div class="actions"><button id="fullscreen">Toàn màn hình</button><span id="runState" class="badge">Sẵn sàng</span></div>
   </header>
   <section class="toolbar" aria-label="Điều khiển lượt chạy">
     <div class="actions"><button id="start" class="primary" disabled>Chạy lượt mới</button><button id="pause" disabled>Tạm dừng</button><button id="resume" disabled>Tiếp tục</button><button id="stop" disabled>Dừng</button></div>
     <label class="pace">Agent <input id="pace" type="number" min="0" max="10" step="0.1" value="1"> giây/task</label>
     <div class="quick-network"><label for="prob">Bất lợi</label><input id="prob" type="range" min="0" max="100" value="30"><label class="percent-input"><input id="probNumber" type="number" min="0" max="100" step="1" value="30" aria-label="Tỷ lệ bất lợi (%)"><span>%</span></label></div>
-    <div class="actions"><button id="offline">Đứt mạng</button><button id="restore">Khôi phục</button></div>
+    <div class="actions"><button id="offline">Đứt mạng</button><button id="restore">Khôi phục ngay</button></div>
   </section>
   <section class="history-bar" aria-label="Xem các bước đã quan sát">
-    <div class="actions"><button id="firstStep">Về bước đầu</button><button id="prevStep">← Bước trước</button><button id="nextStep">Bước tiếp →</button><button id="liveView">Về hiện tại</button></div>
+    <div class="actions"><button id="firstStep">Về bước đầu</button><button id="prevTen">← 10 bước</button><button id="prevStep">← 1 bước</button><button id="nextStep">1 bước →</button><button id="nextTen">10 bước →</button><button id="liveView">Về hiện tại</button></div>
     <span id="historyLabel">Quan sát trực tiếp</span>
     <label id="presetLabel" hidden>Tình huống <select id="preset"><option value="current">Hồ sơ hiện tại</option><option value="normal">Bình thường</option><option value="request">Mất yêu cầu</option><option value="response">Mất phản hồi sau khi ghi</option><option value="latency">Phản hồi chậm quá hạn</option><option value="outage">Đứt mạng</option></select></label>
   </section>
@@ -27,16 +27,16 @@
   <section class="board" aria-label="Hai luồng Agent, MCP và server độc lập">
     <section class="client-column">
       <article class="panel client-panel off">
-        <div class="panel-head"><h2>Agent 1 · MCP 1</h2><span class="policy off">miAssura tắt</span></div>
+        <div class="panel-head"><h2>Agent 1 · Bridge 1</h2><span class="policy off">miAssura tắt</span></div>
         <div class="client-progress"><span id="baselineIssued">0 ý định</span><span id="baselineQueue">0 đang chờ</span></div>
         <div id="baselineAgentNodes" class="nodes" aria-label="Ý định Agent 1"></div>
-        <div id="baselineWindow"></div><div id="baselineClientLog" class="inline-log" hidden></div>
+        <div id="baselineWindow"></div><div id="baselineClientLog" class="inline-log" aria-label="Nhật ký Agent và Bridge · miAssura tắt" hidden></div>
       </article>
       <article class="panel client-panel on">
-        <div class="panel-head"><h2>Agent 2 · MCP 2</h2><span class="policy on">miAssura bật</span></div>
+        <div class="panel-head"><h2>Agent 2 · Bridge 2</h2><span class="policy on">miAssura bật</span></div>
         <div class="client-progress"><span id="reliableIssued">0 ý định</span><span id="reliableQueue">0 đang chờ</span></div>
         <div id="reliableAgentNodes" class="nodes" aria-label="Ý định Agent 2"></div>
-        <div id="reliableWindow"></div><div id="reliableClientLog" class="inline-log" hidden></div>
+        <div id="reliableWindow"></div><div id="reliableClientLog" class="inline-log" aria-label="Nhật ký Agent và Bridge · miAssura bật" hidden></div>
       </article>
     </section>
     <aside class="network-panel">
@@ -48,12 +48,12 @@
       <article class="panel server-panel off">
         <div class="panel-head"><h2>Server · luồng 1</h2><span class="policy off">miAssura tắt</span></div>
         <div id="baselineMetrics" class="server-metrics"></div><div id="baselineNodes" class="nodes" aria-label="Bản ghi luồng 1"></div>
-        <div id="baselineServerWindow"></div><div id="baselineServerLog" class="inline-log" hidden></div>
+        <div id="baselineServerWindow"></div><div id="baselineServerLog" class="inline-log" aria-label="Nhật ký API · miAssura tắt" hidden></div>
       </article>
       <article class="panel server-panel on">
         <div class="panel-head"><h2>Server · luồng 2</h2><span class="policy on">miAssura bật</span></div>
         <div id="reliableMetrics" class="server-metrics"></div><div id="reliableNodes" class="nodes" aria-label="Bản ghi luồng 2"></div>
-        <div id="reliableServerWindow"></div><div id="reliableServerLog" class="inline-log" hidden></div>
+        <div id="reliableServerWindow"></div><div id="reliableServerLog" class="inline-log" aria-label="Nhật ký API · miAssura bật" hidden></div>
       </article>
     </section>
   </section>
@@ -66,16 +66,19 @@
         <label>Số task<input id="count" type="number" min="1" max="100" value="10"></label>
         <label>Tối đa lần gửi/task<input id="attempts" type="number" min="1" max="250" value="5"></label>
         <label class="check"><input id="persistent" type="checkbox"> Phục hồi dài · tối đa 250 lần gửi/task</label>
-        <label>Hồ sơ mạng<select id="force"><option value="mixed">Hỗn hợp theo tỷ lệ</option><option value="normal">Bình thường</option><option value="request">Cản chiều lệnh đi</option><option value="response">Cản chiều phản hồi</option><option value="latency">Phản hồi chậm</option><option value="bandwidth">Băng thông thấp</option><option value="reset">Ngắt kết nối đột ngột</option><option value="partial">Ngắt khi đang truyền</option></select></label>
+        <label>Hồ sơ mạng<select id="force"><option value="mixed">Hỗn hợp theo tỷ lệ</option><option value="normal">Bình thường</option><option value="request">Cản chiều lệnh đi</option><option value="response">Cản chiều phản hồi</option><option value="latency">Phản hồi chậm</option><option value="bandwidth">Băng thông thấp · chiều về</option><option value="reset">Reset TCP · chiều về</option><option value="partial">Cắt stream TLS sau 1 byte</option></select></label>
         <label>Seed<input id="seed" type="number" min="0" max="1000000" value="42"></label>
-        <label>Giữ sự cố (giây)<input id="duration" type="number" min="0.1" max="30" step="0.1" value="4"></label>
-        <label>Độ trễ (ms)<input id="delay" type="number" min="0" max="10000" value="1500"></label>
-        <label>Băng thông (KB/s)<input id="bandwidth" type="number" min="1" max="10000" value="8"></label>
+        <label>Cửa sổ áp sự cố (giây)<input id="duration" type="number" min="0.1" max="30" step="0.1" value="4"></label>
+        <label>Trễ phản hồi (ms)<input id="delay" type="number" min="0" max="10000" value="1500"></label>
+        <label>Băng thông chiều về (KB/s)<input id="bandwidth" type="number" min="1" max="10000" value="8"></label>
         <label class="check"><input id="paired" type="checkbox"> Cùng kịch bản lỗi để đối chứng</label>
         <label class="check"><input id="parent" type="checkbox"> Task cha → checklist</label>
       </div>
       <h3>Trọng số trong các ý định gặp bất lợi</h3><div id="weights" class="weights"></div>
       <button id="apply" class="primary" disabled>Áp dụng cấu hình</button>
+      <p id="scheduleNote" class="note"></p>
+      <p class="note">Bridge đặt connect/read/write/pool timeout là 3s; read timeout đếm thời gian chờ chunk tiếp theo. Đây là cấu hình HTTP client, không phải giới hạn của HTTPS. Backoff tăng 0,2s mỗi lần, tối đa 1s.</p>
+      <p class="note">Luồng tắt vẫn mang ID để lab nối log và đếm ghi thừa; API không dùng nó để chống lặp. Luồng bật dùng ID làm khóa phục hồi. Metadata này không phải JSON-RPC ID.</p>
       <p class="note">5 lần gửi gồm lần đầu và tối đa 4 lần thử lại. Số task và giới hạn gửi áp dụng từ lượt mới; tốc độ và mạng chỉnh được khi chạy. Tối đa 100 ý định, 20 phút/lượt.</p>
       <p class="note">Các nút chung điều khiển cả hai luồng, không đồng bộ tiến độ. Tạm dừng chặn lần gửi tiếp, không hủy request đang bay. Dừng không hoàn tác ghi. Bước trước/sau xem lại bằng chứng đã ghi nhận.</p>
     </article>
@@ -91,8 +94,8 @@
   <section class="full-trace" aria-labelledby="traceHeading">
     <h2 id="traceHeading">Bằng chứng và trace đầy đủ</h2><p id="traceMessage" class="note">Đang tải log của lượt chạy.</p>
     <div class="trace-columns">
-      <article class="panel off"><h2>Luồng 1 · miAssura tắt</h2><section class="log-group"><h3>Agent 1</h3><ol id="trace-agent-baseline" class="log-list"></ol></section><section class="log-group"><h3>MCP 1</h3><ol id="trace-baseline" class="log-list"></ol></section></article>
-      <article class="panel on"><h2>Luồng 2 · miAssura bật</h2><section class="log-group"><h3>Agent 2</h3><ol id="trace-agent-reliable" class="log-list"></ol></section><section class="log-group"><h3>MCP 2</h3><ol id="trace-reliable" class="log-list"></ol></section></article>
+      <article class="panel off"><h2>Luồng 1 · miAssura tắt</h2><section class="log-group"><h3>Agent 1</h3><ol id="trace-agent-baseline" class="log-list"></ol></section><section class="log-group"><h3>Bridge 1 · MCP server</h3><ol id="trace-baseline" class="log-list"></ol></section></article>
+      <article class="panel on"><h2>Luồng 2 · miAssura bật</h2><section class="log-group"><h3>Agent 2</h3><ol id="trace-agent-reliable" class="log-list"></ol></section><section class="log-group"><h3>Bridge 2 · MCP server</h3><ol id="trace-reliable" class="log-list"></ol></section></article>
       <article class="panel"><h2>Server · hai luồng</h2><section class="log-group"><h3>Luồng 1 · miAssura tắt</h3><ol id="trace-server-baseline" class="log-list"></ol></section><section class="log-group"><h3>Luồng 2 · miAssura bật</h3><ol id="trace-server-reliable" class="log-list"></ol></section></article>
     </div>
   </section>

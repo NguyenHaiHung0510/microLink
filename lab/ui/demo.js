@@ -100,7 +100,7 @@ function chooseStep(lane, index) {
   if (!laneEvents[lane].length) return;
   cursors[lane] = Math.max(0, Math.min(laneEvents[lane].length - 1, index));
 }
-for (const [id, change] of [['firstStep', () => 0], ['prevStep', (index) => index - 1], ['nextStep', (index) => index + 1]]) $(id).onclick = () => {
+for (const [id, change] of [['firstStep', () => 0], ['prevTen', (index) => index - 10], ['prevStep', (index) => index - 1], ['nextStep', (index) => index + 1], ['nextTen', (index) => index + 10]]) $(id).onclick = () => {
   for (const lane of lanes) chooseStep(lane, change(cursors[lane] ?? laneEvents[lane].length - 1));
   paint();
 };
@@ -135,7 +135,14 @@ function label(event, brief = false) {
     default: return `${task} · ${event.event}`;
   }
 }
-function sourceLabel(event, brief = false) { return (event.source?.startsWith('agent-') ? 'Agent: ' : 'MCP: ') + label(event, brief); }
+function sourceLabel(event, brief = false) {
+  const source = event.source?.startsWith('agent-') ? 'Agent' : event.source?.startsWith('server-') ? 'API' : 'Bridge';
+  return source + ': ' + label(event, brief);
+}
+function identityHint(lane, id) {
+  if (!id) return '';
+  return lane === 'baseline' ? `Mã theo dõi lab: ${id} · API tắt không dùng để chống ghi lặp` : `Khóa phục hồi: ${id} · giữ qua retry, API bật chống ghi lặp`;
+}
 function markExtras(list) {
   const seen = new Set();
   return list.map(event => {
@@ -167,7 +174,9 @@ function setNodes(id, rows, target, agent = false) {
   for (const row of rows) {
     present.add(row.seq); const duplicate = !agent && counts.get(row.intent_id || row.seq) > 1;
     const tile = node('span', row.seq, 'node' + (agent ? ' emitted' : duplicate ? ' duplicate' : ''));
-    tile.title = `Task ${row.seq}: ${agent ? 'Agent đã phát' : duplicate ? counts.get(row.intent_id || row.seq) + ' bản ghi cùng ý định' : 'server đã ghi'} · ID ý định: ${row.intent_id || '—'}`;
+    const lane = id.startsWith('baseline') ? 'baseline' : 'reliable';
+    tile.title = `Task ${row.seq}: ${agent ? 'Agent đã phát' : duplicate ? counts.get(row.intent_id || row.seq) + ' bản ghi từ cùng công việc' : 'server đã ghi'}`;
+    if (lane === 'reliable') tile.title += ' · ' + identityHint(lane, row.intent_id);
     fragment.append(tile);
   }
   for (let seq = 1; seq <= target; seq++) if (!present.has(seq)) {
@@ -190,12 +199,9 @@ function setLog(id, list) {
   const root = $(id), fragment = document.createDocumentFragment();
   for (const event of list) {
     const item = node('li', '', eventKind(event));
-    item.append(node('time', clock(event.time)), node('b', symbol(event)), node('span', id.endsWith('ClientLog') ? sourceLabel(event) : label(event)));
-    item.title = event.intent_id ? `Ý định: ${event.intent_id}` : '';
-    item.onclick = () => {
-      const lane = event.source.endsWith('baseline') ? 'baseline' : 'reliable';
-      chooseStep(lane, laneEvents[lane].findIndex(row => row.source === event.source && row.trace_offset === event.trace_offset)); paint();
-    };
+    item.append(node('time', clock(event.time)), node('b', symbol(event)), node('span', sourceLabel(event)));
+    const lane = event.source.endsWith('baseline') ? 'baseline' : 'reliable';
+    item.title = identityHint(lane, event.intent_id);
     fragment.append(item);
   }
   if (!list.length) fragment.append(node('li', 'Chưa có sự kiện.'));
@@ -237,7 +243,8 @@ function paintNetwork(network) {
   const description = fault => {
     const direction = fault.direction === 'upstream' ? '→ Lệnh' : '← Kết quả';
     const transport = fault.scenario === 'latency' ? `← ${fault.attributes.latency} ms` : fault.scenario === 'bandwidth' ? `← ${fault.attributes.rate} KB/s` : direction;
-    return `${names[fault.scenario]}\n${transport}`;
+    const remaining = Math.max(0, fault.until - Date.now() / 1000).toFixed(1);
+    return `${names[fault.scenario]}\n${transport} · còn ${remaining}s`;
   };
   const adverse = network?.offline || lanes.some(lane => active[lane]);
   $('activeFaults').parentElement.dataset.condition = adverse ? 'adverse' : 'healthy';
@@ -279,9 +286,9 @@ function paint() {
     setNodes(lane + 'Nodes', rows, target);
     const extra = rows.length - new Set(rows.map(row => row.intent_id)).size;
     setMetrics(lane + 'Metrics', [['Đã ghi', rows.length], ['Ghi thừa', extra, extra > 0], ['Từ chối', server.filter(event => event.event === 'rejected').length]]);
-    setWindow(lane + 'Window', bridge, bridgeNext(lane, bridge.at(-1), info, agent.length, target));
-    setWindow(lane + 'ServerWindow', server, 'Chờ yêu cầu tiếp theo');
     const clientEvents = visible.filter(event => event.source === lane || event.source === agentSource);
+    setWindow(lane + 'Window', clientEvents, bridgeNext(lane, bridge.at(-1), info, agent.length, target), true);
+    setWindow(lane + 'ServerWindow', server, 'API: chờ yêu cầu tiếp theo', true);
     for (const [id, list] of [[lane + 'ClientLog', clientEvents], [lane + 'ServerLog', server]]) { $(id).hidden = !focus; if (focus) setLog(id, list); }
     $(lane + 'Sends').textContent = bridge.filter(event => event.event === 'attempt').length;
     $(lane + 'Receipts').textContent = confirmed;
@@ -294,9 +301,13 @@ function paint() {
   $('firstStep').disabled = !events.length;
   $('prevStep').disabled = !lanes.some(lane => (cursors[lane] ?? laneEvents[lane].length - 1) > 0);
   $('nextStep').disabled = !lanes.some(lane => cursors[lane] !== null && cursors[lane] < laneEvents[lane].length - 1);
+  $('prevTen').disabled = $('prevStep').disabled;
+  $('nextTen').disabled = $('nextStep').disabled;
   $('liveView').disabled = !historical;
   for (const source of sources) setLog('trace-' + source, source.startsWith('server-') ? markExtras(traceStore[source]) : traceStore[source]);
   $('traceMessage').textContent = `${events.length} sự kiện của lượt chạy${moreTrace ? ' · đang tải tiếp' : ''}. Các nút bước áp dụng riêng trên lịch sử mỗi luồng, không ép chạy đồng bộ. Black box luôn là mạng hiện tại.`;
+  const latency = s.config.delay_ms / 1000;
+  $('scheduleNote').textContent = `Cửa sổ ${s.config.duration}s; ca trễ phản hồi tự tháo sau ${+(s.config.duration + latency).toFixed(2)}s (${s.config.duration}s + ${latency}s). Các ca khác tự tháo sau ${s.config.duration}s. Khôi phục ngay hủy sự cố, có thể nhả dữ liệu đang giữ sớm.`;
 }
 function hydrate(config) {
   for (const [id, key] of [['prob','probability'], ['count','count'], ['attempts','attempts'], ['seed','seed'], ['duration','duration'], ['delay','delay_ms'], ['bandwidth','bandwidth_kb'], ['force','force'], ['pace','pace']]) $(id).value = config[key];

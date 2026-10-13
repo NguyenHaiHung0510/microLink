@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hành trình · miAssura</title><link rel="stylesheet" href="/ui/journey.css"><link rel="stylesheet" href="/ui/journey-payload.css"></head>
+<body><main>
+  <header>
+    <div><a class="brand" href="/">microLink / miAssura</a><p>Reliability Through Uncertainty</p></div>
+    <nav aria-label="Cách trình bày"><a href="/ui/demo.html?view=compare">Đối chứng</a><a href="/ui/demo.html?view=focus">Giải thích</a><a href="/ui/journey.html" aria-current="page">Hành trình</a></nav>
+    <div class="header-actions"><button id="fullscreen">Toàn màn hình</button><span class="tag">Mô phỏng</span></div>
+  </header>
+  <section class="controls" aria-label="Điều khiển mô phỏng">
+    <div class="selectors">
+      <label>Tình huống <select id="scenario"></select></label>
+      <label id="variantLabel" hidden>Thời điểm <select id="variant"></select></label>
+      <label id="limitLabel" hidden>Tổng lần gửi <select id="limit"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+    </div>
+    <div class="playback">
+      <div class="buttons"><button id="reset">Về đầu</button><button id="prev">← Bước trước</button><button id="next" class="primary">Bước tiếp →</button><button id="play">Chạy</button><button id="pause" disabled>Tạm dừng</button></div>
+      <label>Nhịp trình bày <select id="speed"><option value="1000">1 giây/bước</option><option value="2000" selected>2 giây/bước</option><option value="4000">4 giây/bước</option><option value="500">0,5 giây/bước</option></select></label>
+      <span id="playState" class="note" role="status">Đã dừng</span>
+    </div>
+  </section>
+  <section class="narration" aria-live="polite" aria-atomic="true">
+    <div class="narration-head"><h1 id="headline"></h1><span id="position"></span></div>
+    <p id="explanation"></p>
+  </section>
+  <section id="board" class="board" aria-label="Hai luồng mô phỏng đi và về"></section>
+  <section id="payloadWalkthrough" class="payload-walkthrough" aria-labelledby="payloadHeading">
+    <div class="payload-heading"><h2 id="payloadHeading">Hành trình thông điệp</h2><div class="payload-controls">
+      <button id="payloadFlow" aria-pressed="true">Đường đi–về</button><button id="payloadSequence" aria-pressed="false">Sequence</button>
+      <label>Payload <select id="payloadLane"><option value="0">miAssura tắt</option><option value="1" selected>miAssura bật</option></select></label>
+      <label><input id="payloadMetadata" type="checkbox"> Metadata lab / wire</label>
+    </div></div>
+    <div class="payload-step-controls"><span id="payloadCurrent" role="status"></span><div class="buttons"><button id="payloadPrev">← Bước trước</button><button id="payloadNext" class="primary">Bước tiếp →</button><button id="payloadPlay">Chạy</button><button id="payloadPause" disabled>Tạm dừng</button></div></div>
+    <div id="payloadPaths" class="payload-paths"></div><div id="payloadSequenceRows" class="payload-sequence" hidden></div>
+    <div class="payload-messages"><article class="payload-message"><h3>① MCP client ↔ microLink</h3><pre id="payloadRpc"></pre></article><article class="payload-message"><h3>② Bridge ↔ API · HTTP trong TLS</h3><pre id="payloadHttp"></pre></article><article class="payload-message"><h3>③ Bằng chứng tại bridge</h3><pre id="payloadEvidence"></pre></article></div>
+    <p id="payloadNote" class="payload-note"></p>
+    <p class="assumptions">Phiên MCP đã khởi tạo. Deadline 3s là giả định của mô hình; client thật đặt timeout theo pha. Payload dùng ID rút gọn để trình bày, không phải packet capture. MCP server và HTTPS bridge là hai vai trò cùng tiến trình; black box không đọc nội dung TLS.</p>
+  </section>
+  <section class="evidence" aria-labelledby="logHeading"><h2 id="logHeading">Diễn tiến đầy đủ</h2><div id="logs" class="logs"></div></section>
+  <p class="note">Đây là mô hình để trình bày, không gửi MCP/HTTPS thật và không tạo số liệu benchmark. Bước trước khôi phục trạng thái mô hình; không hoàn tác dữ liệu lab. Nhịp trình bày không đổi deadline mô phỏng.</p>
+</main><script src="/ui/journey-model.js"></script><script src="/ui/journey-payload.js"></script><script src="/ui/journey.js"></script></body>
+</html>

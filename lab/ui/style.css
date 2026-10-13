@@ -12,7 +12,7 @@ button,input,select{font:inherit;font-size:14px;color:inherit;border:1px solid #
 .network-panel{align-self:stretch;display:flex;flex-direction:column;justify-content:flex-start;padding-top:10px}.blackbox{height:266px;flex-shrink:0;overflow:hidden;background:#154e3c;color:white;border:1px solid #123e30;border-radius:9px;padding:14px 10px;text-align:center}.blackbox[data-condition=adverse]{background:#702c3b;border-color:#57222e}.blackbox strong{font-size:21px;display:block}.blackbox span{font-size:15px;color:#d3dbea;display:block;margin-top:5px}.blackbox p{font-size:15px;color:#f1f6f3;height:42px;line-height:21px;margin:7px 0 0}.network-panel>h3{font-size:16px;text-align:center;margin:14px 0 7px}.endpoint-metrics{border-collapse:collapse;width:100%;background:white;font-size:15px;border-radius:8px}.endpoint-metrics th{font-weight:500;text-align:left;line-height:1.35;padding:8px}.endpoint-metrics td{text-align:center;font:700 26px Consolas,monospace;padding:9px 4px}.endpoint-metrics thead th:not(:first-child){text-align:center;font-weight:700}.endpoint-metrics tr+tr,.endpoint-metrics tbody tr:first-child{border-top:1px solid var(--line)}
 .note{font-size:14px;color:var(--muted);line-height:1.5}.network-panel .note{font-size:13px}.legend{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:10px 0 16px}.key{display:inline-block;width:12px;height:12px;border:1px solid #0b4e36;border-radius:3px;background:#126345}.key.emitted{background:#5137b4;border-color:#3b268b}.key.duplicate{width:17px;height:17px;background:#b4233a;border-color:#841a2b;color:white;text-align:center}
 .settings-row{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;margin-top:12px}.settings-row>.panel{padding:16px}.settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.settings label,.weights label{font-size:14px;display:flex;flex-direction:column;gap:5px}.settings .check{flex-direction:row;align-items:center;line-height:1.4}.check input{accent-color:var(--purple);min-height:20px;width:18px;flex-shrink:0}.weights{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:12px 0}.weights input{width:100%}.rate-table{width:100%;border-collapse:collapse;font-size:15px}.rate-table th{text-align:left}.rate-table td,.rate-table th{padding:8px 4px;border-bottom:1px solid var(--line)}.rate-table td:not(:first-child){font:700 18px Consolas,monospace;text-align:right}.rate-bar{height:9px;display:flex;border-radius:5px;overflow:hidden;margin:12px 0;background:#e1e6ef}.rate-bar span{background:#b7a7eb;border-right:1px solid white}.rate-bar span.normal{background:#9fc5b2}.rate-bar span.outage{background:#a53340}
-.full-trace{margin:24px 0}.trace-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}.trace-columns>.panel{padding:14px}.log-group{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}.log-list{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:8px;font-size:15px;line-height:1.4}.log-list li{display:grid;grid-template-columns:61px 18px minmax(0,1fr);gap:5px;align-items:baseline;overflow-wrap:anywhere;cursor:pointer;border-radius:4px}.log-list time{font:11px Consolas,monospace;color:var(--muted)}.log-list b{font-size:17px;color:var(--purple)}.log-list .confirmed b,.log-list .commit b,.log-list .replay b{color:var(--green)}.log-list .unknown,.log-list .unknown b{color:var(--amber)}.log-list .rejected,.log-list .rejected b{color:var(--red)}.log-list li.selected{background:#eeeafa;outline:1px solid #c6bee6}.inline-log{margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
+.full-trace{margin:24px 0}.trace-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}.trace-columns>.panel{padding:14px}.log-group{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}.log-list{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:8px;font-size:15px;line-height:1.4}.log-list li{display:grid;grid-template-columns:61px 18px minmax(0,1fr);gap:5px;align-items:baseline;overflow-wrap:anywhere;cursor:text;border-radius:4px}.log-list time{font:11px Consolas,monospace;color:var(--muted)}.log-list b{font-size:17px;color:var(--purple)}.log-list .confirmed b,.log-list .commit b,.log-list .replay b{color:var(--green)}.log-list .unknown,.log-list .unknown b{color:var(--amber)}.log-list .rejected,.log-list .rejected b{color:var(--red)}.log-list li.selected{background:#eeeafa;outline:1px solid #c6bee6}.inline-log{margin-top:8px;border-top:1px solid var(--line);padding-top:7px}
 body[data-view=focus] .board{grid-template-columns:minmax(0,1fr) 230px minmax(0,1.3fr)}body[data-view=focus][data-small-case=true] .nodes,body[data-view=focus][data-small-case=true] .server-panel .nodes{grid-template-columns:repeat(3,minmax(0,1fr))}body[data-view=focus][data-small-case=true] .node{min-height:55px;font-size:27px}body[data-view=focus][data-small-case=true] .empty{min-height:55px}body[data-view=focus] .log-list{font-size:15px}
 .landing{max-width:850px;padding:28px}.landing h1{font-size:28px}.landing a{display:inline-block;margin:8px}.landing .panel{padding:22px}
 .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choices>a{display:block;text-decoration:none}.choices p{color:var(--muted)}
@@ -37,3 +37,47 @@ body[data-view=focus][data-small-case=true] .client-panel .nodes{grid-template-c
 @media(min-width:1051px) and (max-width:1350px){.board{grid-template-columns:minmax(0,1fr) 190px minmax(0,1fr)}.node{font-size:12px;min-height:20px}.state-row.current{font-size:15px}.state-row.previous,.state-row.upcoming{font-size:13px}}
 @media(max-width:1050px){.board,body[data-view=focus] .board{grid-template-columns:1fr}.network-panel{display:flex}.client-column,.server-column{grid-template-columns:1fr 1fr}.client-panel .nodes,.server-panel .nodes{grid-template-columns:repeat(10,minmax(0,1fr))}}
 @media(max-width:600px){.client-column,.server-column{grid-template-columns:1fr}}
+
+/* Full-HD presentation: large numbered tasks and readable current decisions. */
+@media(min-width:1600px){
+  body.demo main{max-width:1920px;padding:18px 22px}
+  .page-head{margin-bottom:10px}.brand{font-size:28px}.page-head p{font-size:16px}
+  .modes a{font-size:20px;padding:9px 14px}.badge{font-size:16px}
+  button,input,select{font-size:17px;min-height:44px}
+  .toolbar{padding:8px 12px}.pace,.quick-network{font-size:18px}
+  .pace input{width:76px}.percent-input input{font-size:22px;width:77px}
+  .quick-network input[type=range]{width:150px}
+  .history-bar{margin-top:8px;font-size:16px}.history-bar button{font-size:16px;min-height:36px;padding:5px 10px}
+  .board,body[data-view=focus] .board{grid-template-columns:minmax(0,1fr) 280px minmax(0,1fr);gap:14px 18px}
+  .client-panel,.server-panel{padding:12px}
+  .panel-head h2{font-size:22px}.panel-head .policy{font-size:16px}.client-progress{font-size:16px}
+  .client-panel .nodes,.server-panel .nodes{grid-template-columns:repeat(20,minmax(0,1fr));gap:4px 3px}
+  .node{font-size:19px;min-height:30px}.node.duplicate{font-size:18px}
+  .node.duplicate::after{font-size:13px;right:-3px;top:-7px}
+  .state-row{grid-template-columns:70px minmax(0,1fr)}
+  .state-row.current{font-size:22px}.state-row.previous,.state-row.upcoming{font-size:16px}.state-label{font-size:14px}
+  .metric strong{font-size:30px}.metric span{font-size:18px}
+  .blackbox{height:380px;padding:16px 12px}.blackbox strong{font-size:28px}
+  .blackbox p{height:52px;line-height:26px;font-size:19px;margin-top:8px}
+  .blackbox .fault-state{height:108px;margin-top:8px;padding:8px}
+  .fault-state b{font-size:19px}.blackbox .fault-state span{font-size:18px;line-height:24px}
+  .network-panel>h3{font-size:20px;margin-top:16px}
+  .endpoint-metrics{font-size:18px}.endpoint-metrics td{font-size:32px}
+  .legend{font-size:16px;margin:12px 0 20px}.key{width:15px;height:15px}
+  .settings-row{margin-top:16px}
+
+}
+
+
+/* Explain is a reading view for every workload size; the page grows with logs. */
+body[data-view=focus] .inline-log{max-height:none;overflow:visible}
+body[data-view=focus] .inline-log .log-list{line-height:1.55;gap:10px}
+body[data-view=focus] .inline-log .log-list li{cursor:text;user-select:text}
+@media(min-width:1600px){
+  body[data-view=focus] .board{grid-template-columns:minmax(0,1fr) 240px minmax(0,1fr)}
+  body[data-view=focus] .inline-log{margin-top:14px;padding-top:12px}
+  body[data-view=focus] .inline-log .log-list{font-size:18px}
+  body[data-view=focus] .inline-log .log-list li{grid-template-columns:78px 24px minmax(0,1fr);gap:8px}
+  body[data-view=focus] .inline-log .log-list time{font-size:14px}
+  body[data-view=focus] .inline-log .log-list b{font-size:21px}
+}
